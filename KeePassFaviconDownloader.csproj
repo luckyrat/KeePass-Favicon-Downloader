@@ -1,0 +1,140 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="3.5">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{4C1BB6F8-D2CD-49C2-9053-21705681356C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>KeePassFaviconDownloader</RootNamespace>
+    <AssemblyName>KeePassFaviconDownloader</AssemblyName>
+    <SignAssembly>false</SignAssembly>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>2.0</OldToolsVersion>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="KeePass, Version=2.0.9.24797, Culture=neutral, PublicKeyToken=fed2ed7716aecf5c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Program Files\KeePass Password Safe 2\KeePass.exe</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="KeePassFaviconDownloaderExt.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+  <PropertyGroup>
+    <PostBuildEvent>echo POSTBUILDSTEP for $(ProjectName)
+
+set KPDir=C:\Program Files\KeePass Password Safe 2\
+set KPPDir=%25KPDir%25plugins\
+set KPPTempDir=%25KPPDir%25$(ProjectName)
+
+IF NOT "$(ConfigurationName)"=="Debug" Goto :NotDebug
+REM In debug mode we want to move the generated DLLs and PDBs to the plugins
+REM directory so we can easily set breakpoints, etc.
+REM In this case, we don't care if the Firefox add-on has missing or outdated
+REM files (they are only used at install time so it won't affect debugging)
+
+REM delete the PLGX from any previous Release build
+del /Q "%25KPPDir%25$(ProjectName).plgx"
+if errorlevel 1 goto BuildEventFailed
+echo Release plgx deleted
+
+REM copy output DLLs to KeePass plugins directory
+copy "$(ProjectName).dll" "%25KPPDir%25\$(ProjectName).dll"
+if errorlevel 1 goto BuildEventFailed
+echo Debug DLLs copied to plugins directory
+
+goto BuildEventOK
+
+:NotDebug
+IF NOT "$(ConfigurationName)"=="Release" Goto :NotRelease
+REM In release mode we want to make sure that we are working with the PLGX version.
+
+REM delete the DLLs from any previous Debug build
+del /Q "%25KPPDir%25$(ProjectName).dll"
+if errorlevel 1 goto BuildEventFailed
+echo Debug DLLs deleted
+
+REM create temporary directory
+rmdir /S /Q "%25KPPTempDir%25"
+mkdir "%25KPPTempDir%25"
+if errorlevel 1 goto BuildEventFailed
+echo Temporary directory created
+
+REM copy relevant project files to temporary directory
+REM (for simple KeePass plugins you may need to
+REM copy only *.cs files and .csproj file)
+copy "$(ProjectDir)*.cs" "%25KPPTempDir%25"
+if errorlevel 1 goto BuildEventFailed
+copy "$(ProjectDir)$(ProjectName).csproj" "%25KPPTempDir%25\$(ProjectName).csproj"
+if errorlevel 1 goto BuildEventFailed
+mkdir "%25KPPTempDir%25\Properties"
+copy "$(ProjectDir)Properties\AssemblyInfo.cs" "%25KPPTempDir%25\Properties\AssemblyInfo.cs"
+if errorlevel 1 goto BuildEventFailed
+echo Files copied to temporary directory
+
+REM create the PLGX
+"%25KPDir%25KeePass.exe" --plgx-create "%25KPPTempDir%25"
+if errorlevel 1 goto BuildEventFailed
+echo PLGX created
+
+REM delete the temporary directory and its contents
+rmdir /S /Q "%25KPPTempDir%25"
+if errorlevel 1 goto BuildEventFailed
+echo Temporary directory deleted
+
+goto BuildEventOK
+
+
+:NotRelease
+echo Invalid configuration selected. Please choose a different build configuration
+echo or modify the post-build script to add support for this configuration.
+
+:BuildEventFailed
+echo POSTBUILDSTEP for $(ProjectName) FAILED
+exit 1
+
+:BuildEventOK
+echo POSTBUILDSTEP for $(ProjectName) COMPLETED OK</PostBuildEvent>
+  </PropertyGroup>
+</Project>
