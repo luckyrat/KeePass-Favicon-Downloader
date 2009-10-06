@@ -236,18 +236,31 @@ namespace KeePassFaviconDownloader
             // TODO: create async jobs instead?
 
             string url = pwe.Strings.ReadSafe("URL");
-            if (string.IsNullOrEmpty(url) || !url.StartsWith("http"))
+            
+            // If we have no URL, quit
+            if (string.IsNullOrEmpty(url))
+                return;
+
+            // If we have a URL with specific scheme that is not http or https, quit
+            if (!url.StartsWith("http://") && !url.StartsWith("https://")
+                && url.Contains("://"))
                 return;
 
             int dotIndex = url.IndexOf(".");
             if (dotIndex >= 0)
             {
+                // trim any path data
                 int slashDotIndex = url.IndexOf("/", dotIndex);
                 if (slashDotIndex >= 0)
                     url = url.Substring(0, slashDotIndex);
 
+                // If there is a protocol/scheme prepended to the URL, strip it off.
+                int protocolEndIndex = url.LastIndexOf("/");
+                if (protocolEndIndex >= 0)
+                    url = url.Substring(protocolEndIndex + 1);
+
                 //WebRequest webreq = WebRequest.Create("http://getfavicon.appspot.com/http://"+url); // 500 internal server error
-                WebRequest webreq = WebRequest.Create("http://www.faviconiac.com/favicon/" + url.Substring(url.LastIndexOf("/") + 1)); // lots missing, although they seem to appear a few days after first request...
+                WebRequest webreq = WebRequest.Create("http://www.faviconiac.com/favicon/" + url); // lots missing, although they seem to appear a few days after first request...
                 //WebRequest webreq = WebRequest.Create("http://www.getfavicon.org/?url=" + url.Substring(url.LastIndexOf("/") + 1) + "/favicon.png"); // timed out
                 // Google S2 - favicon.ico only
 

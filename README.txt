@@ -1,8 +1,12 @@
 KeePass Favicon Downloader plugin
 =================================
 
-Version 1.0
------------
+Version 1.1 changes
+-------------------
+URLs without http:// in front of them are now processed.
+
+Version 1.0 release notes
+-------------------------
 
 Pre-requisites
 --------------
