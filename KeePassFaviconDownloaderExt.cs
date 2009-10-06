@@ -1,6 +1,6 @@
 /*
   KeePass Favicon Downloader - KeePass plugin that downloads and stores
-  favicons for entries with URLs that start with 'http'
+  favicons for entries with web URLs.
   Copyright (C) 2009 Chris Tomlinson <luckyrat@users.sourceforge.net>
 
   This program is free software; you can redistribute it and/or modify

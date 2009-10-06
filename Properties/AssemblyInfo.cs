@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Favicon Downloader - KeePass plugin that downloads and stores
-  favicons for entries with URLs that start with 'http'
+  favicons for entries with web URLs
   Copyright (C) 2009 Chris Tomlinson <luckyrat@users.sourceforge.net>
 
   This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@ using System.Runtime.InteropServices;
 
 // General assembly properties
 [assembly: AssemblyTitle("Favicon Downloader")]
-[assembly: AssemblyDescription("Downloads and stores favicons for entries with URLs that start with 'http'.")]
+[assembly: AssemblyDescription("KeePass plugin that downloads and stores favicons for entries with web URLs.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Chris Tomlinson")]
 [assembly: AssemblyProduct("KeePass Plugin")]
