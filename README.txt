@@ -1,6 +1,10 @@
 KeePass Favicon Downloader plugin
 =================================
 
+Version 1.2 changes
+-------------------
+Most download errors should now be displayed to the user rather than crashing KeePass.
+
 Version 1.1 changes
 -------------------
 URLs without http:// in front of them are now processed.
