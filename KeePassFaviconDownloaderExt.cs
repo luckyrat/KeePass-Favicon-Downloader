@@ -103,12 +103,6 @@ namespace KeePassFaviconDownloader
             ecm.Items.Remove(m_tsSeparator3);
             ecm.Items.Remove(menuDownloadEntryFavicons);
 
-            m_tsSeparator1.Dispose();
-            menuDownloadFavicons.Dispose();
-            m_tsSeparator2.Dispose();
-            menuDownloadGroupFavicons.Dispose();
-            m_tsSeparator3.Dispose();
-            menuDownloadEntryFavicons.Dispose();
 		}
 
         /// <summary>
@@ -131,8 +125,6 @@ namespace KeePassFaviconDownloader
 
             progressForm.InitEx("Downloading Favicons", true, false, m_host.MainWindow);
             progressForm.Show();
-            progressForm.StartLogging(null, false);
-            progressForm.SetProgress(0);
 
             float progress = 0;
             float outputLength = (float)output.UCount;
@@ -149,11 +141,12 @@ namespace KeePassFaviconDownloader
                     break;
             }
 
+            progressForm.Hide();
             progressForm.Close();
-            progressForm.Dispose();
 
             m_host.MainWindow.UpdateUI(false, null, false, null,
                 true, null, true);
+            m_host.MainWindow.UpdateTrayIcon();
 		}
 
         /// <summary>
@@ -170,8 +163,6 @@ namespace KeePassFaviconDownloader
 
             progressForm.InitEx("Downloading Favicons", true, false, m_host.MainWindow);
             progressForm.Show();
-            progressForm.StartLogging(null, false);
-            progressForm.SetProgress(0);
 
             float progress = 0;
             float outputLength = (float)pg.Entries.UCount;
@@ -188,11 +179,12 @@ namespace KeePassFaviconDownloader
                     break;
             }
 
+            progressForm.Hide();
             progressForm.Close();
-            progressForm.Dispose();
 
             m_host.MainWindow.UpdateUI(false, null, false, null,
                 true, null, true);
+            m_host.MainWindow.UpdateTrayIcon();
         }
 
         /// <summary>
@@ -202,6 +194,7 @@ namespace KeePassFaviconDownloader
         /// <param name="e"></param>
         private void OnMenuDownloadEntryFavicons(object sender, EventArgs e)
         {
+            
             PwEntry[] pwes = m_host.MainWindow.GetSelectedEntries();
             Debug.Assert(pwes != null); if (pwes == null || pwes.Length == 0) return;
 
@@ -209,8 +202,6 @@ namespace KeePassFaviconDownloader
 
             progressForm.InitEx("Downloading Favicons", true, false, m_host.MainWindow);
             progressForm.Show();
-            progressForm.StartLogging(null, false);
-            progressForm.SetProgress(0);
 
             float progress = 0;
             float outputLength = (float)pwes.Length;
@@ -227,11 +218,12 @@ namespace KeePassFaviconDownloader
                     break;
             }
 
+            progressForm.Hide();
             progressForm.Close();
-            progressForm.Dispose();
-
+            
             m_host.MainWindow.UpdateUI(false, null, false, null,
                 true, null, true);
+            m_host.MainWindow.UpdateTrayIcon();
         }
 
         /// <summary>

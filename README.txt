@@ -1,6 +1,11 @@
 KeePass Favicon Downloader plugin
 =================================
 
+Version 1.3 changes
+-------------------
+KeePass tray icon re-enabled after Favicons have been downloaded.
+Fixed a bug where some KeePass features stopped working after downloading favicons (e.g. autotype)
+
 Version 1.2 changes
 -------------------
 Most download errors should now be displayed to the user rather than crashing KeePass.
