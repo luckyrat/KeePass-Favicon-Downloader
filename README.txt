@@ -1,6 +1,11 @@
 KeePass Favicon Downloader plugin
 =================================
 
+Version 1.4 changes
+-------------------
+If the webservice fails or returns a "default/unknown" icon then we now try grabbing it directly from the target website. It will only work if the icon is in the traditional location (/favicon.ico).
+Only the last error message is displayed now (a future improvement might be to log all errors somewhere but for now, this at least avoids having to click through hundreds of error messages if the favicon webservice is unavailable during bulk favicon downloads).
+
 Version 1.3 changes
 -------------------
 KeePass tray icon re-enabled after Favicons have been downloaded.
