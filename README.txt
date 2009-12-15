@@ -1,6 +1,10 @@
 KeePass Favicon Downloader plugin
 =================================
 
+Version 1.4.1 changes
+-------------------
+It will hopefully work correctly on .NET 2.0 now.
+
 Version 1.4 changes
 -------------------
 If the webservice fails or returns a "default/unknown" icon then we now try grabbing it directly from the target website. It will only work if the icon is in the traditional location (/favicon.ico).

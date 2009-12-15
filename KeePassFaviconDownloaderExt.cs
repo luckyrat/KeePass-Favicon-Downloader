@@ -75,7 +75,7 @@ namespace KeePassFaviconDownloader
             tsMenu.Add(menuDownloadFavicons);
 
             // Add a seperator and menu item to the group context menu
-            var gcm = m_host.MainWindow.GroupContextMenu;
+            ContextMenuStrip gcm = m_host.MainWindow.GroupContextMenu;
             m_tsSeparator2 = new ToolStripSeparator();
             gcm.Items.Add(m_tsSeparator2);
             menuDownloadGroupFavicons = new ToolStripMenuItem();
@@ -84,7 +84,7 @@ namespace KeePassFaviconDownloader
             gcm.Items.Add(menuDownloadGroupFavicons);
 
             // Add a seperator and menu item to the entry context menu
-            var ecm = m_host.MainWindow.EntryContextMenu;
+            ContextMenuStrip ecm = m_host.MainWindow.EntryContextMenu;
             m_tsSeparator3 = new ToolStripSeparator();
             ecm.Items.Add(m_tsSeparator3);
             menuDownloadEntryFavicons = new ToolStripMenuItem();
@@ -106,12 +106,12 @@ namespace KeePassFaviconDownloader
             tsMenu.Remove(menuDownloadFavicons);
 
             // Remove group context menu items
-            var gcm = m_host.MainWindow.GroupContextMenu;
+            ContextMenuStrip gcm = m_host.MainWindow.GroupContextMenu;
             gcm.Items.Remove(m_tsSeparator2);
             gcm.Items.Remove(menuDownloadGroupFavicons);
 
             // Remove entry context menu items
-            var ecm = m_host.MainWindow.EntryContextMenu;
+            ContextMenuStrip ecm = m_host.MainWindow.EntryContextMenu;
             ecm.Items.Remove(m_tsSeparator3);
             ecm.Items.Remove(menuDownloadEntryFavicons);
 
@@ -166,7 +166,7 @@ namespace KeePassFaviconDownloader
         /// <param name="entries">The entries.</param>
         private void downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry> entries)
         {
-            var progressForm = new StatusProgressForm();
+            StatusProgressForm progressForm = new StatusProgressForm();
 
             progressForm.InitEx("Downloading Favicons", true, false, m_host.MainWindow);
             progressForm.Show();
@@ -259,9 +259,9 @@ namespace KeePassFaviconDownloader
                 // If we found an icon then we don't care whether one particular download method failed.
                 message = "";
 
-                var msByteArray = ms.ToArray();
+                byte[] msByteArray = ms.ToArray();
 
-                foreach (var item in m_host.Database.CustomIcons)
+                foreach (PwCustomIcon item in m_host.Database.CustomIcons)
                 {
                     // re-use existing custom icon if it's already in the database
                     // (This will probably fail if database is used on 
@@ -343,7 +343,7 @@ namespace KeePassFaviconDownloader
                 return false;
             }
 
-            var webResponseByteArray = memStream.ToArray();
+            byte[] webResponseByteArray = memStream.ToArray();
             string currentImageData = Convert.ToBase64String(webResponseByteArray);
 
             // ignore the default image (don't change existing entry icon)
