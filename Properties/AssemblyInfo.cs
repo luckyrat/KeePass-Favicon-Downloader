@@ -1,7 +1,7 @@
 ﻿/*
   KeePass Favicon Downloader - KeePass plugin that downloads and stores
   favicons for entries with web URLs
-  Copyright (C) 2009 Chris Tomlinson <luckyrat@users.sourceforge.net>
+  Copyright (C) 2009-2010 Chris Tomlinson <luckyrat@users.sourceforge.net>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Chris Tomlinson")]
 [assembly: AssemblyProduct("KeePass Plugin")]
-[assembly: AssemblyCopyright("Copyright © 2009 Chris Tomlinson")]
+[assembly: AssemblyCopyright("Copyright © 2009-2010 Chris Tomlinson")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -40,4 +40,4 @@ using System.Runtime.InteropServices;
 
 // Assembly version information
 [assembly: AssemblyVersion("2.0.9.*")]
-[assembly: AssemblyFileVersion("1.4.1.0")]
+[assembly: AssemblyFileVersion("1.5.0.0")]

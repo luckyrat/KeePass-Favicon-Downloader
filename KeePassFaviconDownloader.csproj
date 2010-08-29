@@ -36,9 +36,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="KeePass, Version=2.0.9.24797, Culture=neutral, PublicKeyToken=fed2ed7716aecf5c, processorArchitecture=MSIL">
+    <Reference Include="HtmlAgilityPack, Version=1.4.0.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Program Files\KeePass Password Safe 2\KeePass.exe</HintPath>
+      <HintPath>.\HtmlAgilityPack.dll</HintPath>
+    </Reference>
+    <Reference Include="KeePass, Version=2.1.2.16375, Culture=neutral, PublicKeyToken=fed2ed7716aecf5c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>C:\Program Files (x86)\KeePass Password Safe 2\KeePass.exe</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -64,7 +68,7 @@
   <PropertyGroup>
     <PostBuildEvent>echo POSTBUILDSTEP for $(ProjectName)
 
-set KPDir=C:\Program Files\KeePass Password Safe 2\
+set KPDir=C:\Program Files (x86)\KeePass Password Safe 2\
 set KPPDir=%25KPDir%25plugins\
 set KPPTempDir=%25KPPDir%25$(ProjectName)
 
@@ -81,6 +85,7 @@ echo Release plgx deleted
 
 REM copy output DLLs to KeePass plugins directory
 copy "$(ProjectName).dll" "%25KPPDir%25\$(ProjectName).dll"
+copy "HtmlAgilityPack.dll" "%25KPPDir%25\HtmlAgilityPack.dll"
 if errorlevel 1 goto BuildEventFailed
 echo Debug DLLs copied to plugins directory
 
@@ -92,7 +97,8 @@ REM In release mode we want to make sure that we are working with the PLGX versi
 
 REM delete the DLLs from any previous Debug build
 del /Q "%25KPPDir%25$(ProjectName).dll"
-if errorlevel 1 goto BuildEventFailed
+del /Q "%25KPPDir%25HtmlAgilityPack.dll"
+REM if errorlevel 1 goto BuildEventFailed
 echo Debug DLLs deleted
 
 REM create temporary directory
@@ -105,6 +111,7 @@ REM copy relevant project files to temporary directory
 REM (for simple KeePass plugins you may need to
 REM copy only *.cs files and .csproj file)
 copy "$(ProjectDir)*.cs" "%25KPPTempDir%25"
+copy "$(ProjectDir)HtmlAgilityPack.dll" "%25KPPTempDir%25\HtmlAgilityPack.dll"
 if errorlevel 1 goto BuildEventFailed
 copy "$(ProjectDir)$(ProjectName).csproj" "%25KPPTempDir%25\$(ProjectName).csproj"
 if errorlevel 1 goto BuildEventFailed
