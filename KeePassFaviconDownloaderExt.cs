@@ -1,7 +1,8 @@
 /*
   KeePass Favicon Downloader - KeePass plugin that downloads and stores
   favicons for entries with web URLs.
-  Copyright (C) 2009-2010 Chris Tomlinson <luckyrat@users.sourceforge.net>
+  Copyright (C) 2009-2011 Chris Tomlinson <luckyrat@users.sourceforge.net>
+  Thanks to mausoma and psproduction for their contributions
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -167,6 +168,7 @@ namespace KeePassFaviconDownloader
 
             progressForm.InitEx("Downloading Favicons", true, false, m_host.MainWindow);
             progressForm.Show();
+            progressForm.SetProgress(0);
 
             float progress = 0;
             float outputLength = (float)entries.UCount;
@@ -231,6 +233,8 @@ namespace KeePassFaviconDownloader
             if (dotIndex >= 0)
             {
                 string protocol = "http";
+                string fullURL = url;
+
                 // trim any path data
                 int slashDotIndex = url.IndexOf("/", dotIndex);
                 if (slashDotIndex >= 0)
@@ -245,7 +249,7 @@ namespace KeePassFaviconDownloader
                 }
 
                 MemoryStream ms = null;
-                bool success = getFromFaviconExplicitLocation(url, protocol, ref ms, ref message);
+                bool success = getFromFaviconExplicitLocation(url, protocol, fullURL, ref ms, ref message);
 
                 if (!success)
                     success = getFromFaviconStandardLocation(url, protocol, ref ms, ref message);
@@ -266,6 +270,7 @@ namespace KeePassFaviconDownloader
                     if (KeePassLib.Utility.MemUtil.ArraysEqual(msByteArray, item.ImageDataPng))
                     {
                         pwe.CustomIconUuid = item.Uuid;
+                        pwe.Touch(true);
                         m_host.Database.UINeedsIconUpdate = true;
                         return;
                     }
@@ -276,7 +281,7 @@ namespace KeePassFaviconDownloader
                     ms.ToArray());
                 m_host.Database.CustomIcons.Add(pwci);
                 pwe.CustomIconUuid = pwci.Uuid;
-
+                pwe.Touch(true);
                 m_host.Database.UINeedsIconUpdate = true;
             }
 
@@ -290,18 +295,17 @@ namespace KeePassFaviconDownloader
         /// <param name="ms">The memory stream (output).</param>
         /// <param name="message">Any error message is sent back through this string.</param>
         /// <returns></returns>
-        private bool getFromFaviconExplicitLocation(string url, string protocol, ref MemoryStream ms, ref string message)
+        private bool getFromFaviconExplicitLocation(string url, string protocol, string fullURL, ref MemoryStream ms, ref string message)
         {
             if (protocol != "https")
                 protocol = "http";
-
-            
+                        
             HtmlWeb hw = new HtmlWeb();
             HtmlAgilityPack.HtmlDocument hdoc = null;
 
             try
             {
-                hdoc = hw.Load(protocol + "://" + url);
+                hdoc = hw.Load(fullURL);
             }
             catch (Exception)
             {
@@ -314,24 +318,41 @@ namespace KeePassFaviconDownloader
             string faviconLocation = "";
             try
             {
-                faviconLocation = hdoc.DocumentNode.SelectNodes("/html/head/link[@rel='shortcut icon']")[0].Attributes["href"].Value;
+                HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
+                for (int i = 0; i < links.Count; i++)
+                {
+                    HtmlNode node = links[i];
+                    try
+                    {
+                        HtmlAttribute r = node.Attributes["rel"];
+                        if (r.Value.ToLower().CompareTo("shortcut icon") == 0 || r.Value.ToLower().CompareTo("icon") == 0)
+                        {
+                            try
+                            {
+                                faviconLocation = node.Attributes["href"].Value;
+                                break;
+                            }
+                            catch (Exception)
+                            {
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
             }
             catch (Exception)
             {
-                try
-                {
-                    faviconLocation = hdoc.DocumentNode.SelectNodes("/html/head/link[@rel='icon']")[0].Attributes["href"].Value;
-                }
-                catch (Exception)
-                {
-                    // don't care
-                }
             }
             if (string.IsNullOrEmpty(faviconLocation))
                 return false;
 
             if (!faviconLocation.StartsWith("http://") && !faviconLocation.StartsWith("https://"))
-                faviconLocation = "http://" + url + faviconLocation;
+                if(faviconLocation.StartsWith("/"))
+                    faviconLocation = "http://" + url + faviconLocation;
+                else
+                    faviconLocation = "http://" + url + "/" + faviconLocation;
 
             return getFavicon(faviconLocation, ref ms, ref message);
 
@@ -374,17 +395,33 @@ namespace KeePassFaviconDownloader
                 webreq.Timeout = 10000; // don't think it's expecting too much for a few KB to be delivered inside 10 seconds.
 
                 WebResponse response = webreq.GetResponse();
+                
+                if( response==null )
+                {
+                    message += "Could not download favicon(s). This may be a temporary problem so you may want to try again later or post the contents of this error message on the KeePass Favicon Download forums at http://sourceforge.net/projects/keepass-favicon/support. Technical information which may help diagnose the problem is listed below, you can copy it to your clipboard by just clicking on this message and pressing CTRL-C.\n - No response from server";
+                    return false;
+                }
+                if( string.Compare(response.ResponseUri.ToString(), url, StringComparison.InvariantCultureIgnoreCase) != 0 )
+                {
+                    //Redirect ?
+                    return getFavicon(response.ResponseUri.ToString(), ref ms, ref message);
+                }
+
                 s = response.GetResponseStream();
 
-
-
-                byte[] respBuffer = new byte[40960];
-
-                int bytesRead = s.Read(respBuffer, 0, respBuffer.Length);
-                if (bytesRead > 0)
+                int count = 0;
+                byte[] buffer = new byte[4097];
+                do
                 {
-                    memStream.Write(respBuffer, 0, bytesRead);
-                }
+                    count = s.Read(buffer, 0, buffer.Length);        
+                    memStream.Write(buffer, 0, count);    
+                    if (count == 0)
+                        break;
+                }    
+                while (true);
+                memStream.Position = 0;
+                
+                // END change
 
                 try { img = (new Icon(memStream)).ToBitmap(); }
                 catch (Exception)

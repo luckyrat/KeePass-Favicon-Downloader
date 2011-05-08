@@ -1,9 +1,16 @@
 KeePass Favicon Downloader plugin
 =================================
 
-Version 1.5.0 changes
+Version 1.6.0 changes
 ---------------------
-The previous favicon service provider dissapeared so I'm now using the HTMLAgilityPack to manage the whole download procedure.
+* Thanks to mausoma and psproduction for several of these improvements
+- Non lower-case rel attribute values are now processed
+- Favicons larger than 40KB can now be downloaded
+- Favicons that are found after a redirection can now be downloaded
+- Favicons with no leading / can now be downloaded
+- Progress bar now displays before first (or only) favicon starts downloading
+- Exact URL (page) now queried for favicon rather than domain root
+- Entry's modification date is now updated (no new history entry is created though; backups before mass favicon downloading is still recommended)
 
 Pre-requisites
 --------------
@@ -34,6 +41,10 @@ Try searching or posting on the forum: https://sourceforge.net/projects/keepass-
 
 Old changelog
 =============
+
+Version 1.5.0 changes
+---------------------
+The previous favicon service provider dissapeared so I'm now using the HTMLAgilityPack to manage the whole download procedure.
 
 Version 1.4.1 changes
 -------------------
