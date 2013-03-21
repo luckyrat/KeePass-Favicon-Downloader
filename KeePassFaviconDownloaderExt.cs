@@ -37,6 +37,7 @@ using KeePass.Resources;
 using KeePassLib;
 using KeePassLib.Security;
 using HtmlAgilityPack;
+using System.Text.RegularExpressions;
 
 namespace KeePassFaviconDownloader
 {
@@ -44,6 +45,8 @@ namespace KeePassFaviconDownloader
 	{
 		// The plugin remembers its host in this variable.
 		private IPluginHost m_host = null;
+
+        new string UpdateUrl = "https://raw.github.com/luckyrat/KeePass-Favicon-Downloader/master/versionInfo.txt";
 
         private ToolStripSeparator m_tsSeparator1 = null;
         private ToolStripSeparator m_tsSeparator2 = null;
@@ -219,8 +222,11 @@ namespace KeePassFaviconDownloader
             // TODO: create async jobs instead?
 
             string url = pwe.Strings.ReadSafe("URL");
+
+            if (string.IsNullOrEmpty(url))
+                url = pwe.Strings.ReadSafe("Title");
             
-            // If we have no URL, quit
+            // If we still have no URL, quit
             if (string.IsNullOrEmpty(url))
                 return;
 
@@ -286,6 +292,65 @@ namespace KeePassFaviconDownloader
             }
 
         }
+        private Uri reconcileURI(Uri baseUri, string newUri)
+        {
+            // If there is nothing new, then return the original Uri
+            if (String.IsNullOrEmpty(newUri))
+            {
+                return baseUri;
+            }
+
+            // If the newURI is a full URI, then return that, otherwise we'll get a UriFormatException
+            try
+            {
+                return new Uri(newUri);
+            }
+            catch (Exception) { }
+
+            return new Uri(baseUri, newUri);
+        }
+
+        private Uri getMetaRefreshLink(Uri uri, HtmlAgilityPack.HtmlDocument hdoc)
+        {
+            HtmlNodeCollection metas = hdoc.DocumentNode.SelectNodes("/html/head/meta");
+            string redirect = null;
+
+            if (metas == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < metas.Count; i++)
+            {
+                HtmlNode node = metas[i];
+                try
+                {
+                    HtmlAttribute httpeq = node.Attributes["http-equiv"];
+                    HtmlAttribute content = node.Attributes["content"];
+                    if (httpeq.Value.ToLower().Equals("location") || httpeq.Value.ToLower().Equals("refresh"))
+                    {
+                        if (content.Value.ToLower().Contains("url"))
+                        {
+                            Match match = Regex.Match(content.Value.ToLower(), @".*?url[\s=]*(\S+)");
+                            if (match.Success)
+                            {
+                                redirect = match.Captures[0].ToString();
+                                redirect = match.Groups[1].ToString();
+                            }
+                        }
+
+                    }
+                }
+                catch (Exception) { }
+            }
+
+            if (String.IsNullOrEmpty(redirect))
+            {
+                return null;
+            }
+
+            return reconcileURI(uri, redirect);
+        }
 
         /// <summary>
         /// Gets a memory stream representing an image from an explicit favicon location.
@@ -302,10 +367,23 @@ namespace KeePassFaviconDownloader
                         
             HtmlWeb hw = new HtmlWeb();
             HtmlAgilityPack.HtmlDocument hdoc = null;
+            Uri responseURI = null; 
 
             try
             {
-                hdoc = hw.Load(fullURL);
+                Uri nextUri = new Uri(fullURL);
+                do
+                {
+                    // HtmlWeb.Load will follow 302 and 302 redirects to alternate URIs
+                    hdoc = hw.Load(nextUri.AbsoluteUri);
+                    responseURI = hw.ResponseUri;
+
+                    // Old school meta refreshes need to parsed
+                    nextUri = getMetaRefreshLink(responseURI, hdoc);
+
+                } while (nextUri != null);
+
+
             }
             catch (Exception)
             {
@@ -348,12 +426,7 @@ namespace KeePassFaviconDownloader
             if (string.IsNullOrEmpty(faviconLocation))
                 return false;
 
-            if (!faviconLocation.StartsWith("http://") && !faviconLocation.StartsWith("https://"))
-                if(faviconLocation.StartsWith("/"))
-                    faviconLocation = "http://" + url + faviconLocation;
-                else
-                    faviconLocation = "http://" + url + "/" + faviconLocation;
-
+            faviconLocation = reconcileURI(responseURI, faviconLocation).AbsoluteUri; 
             return getFavicon(faviconLocation, ref ms, ref message);
 
         }

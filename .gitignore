@@ -1,0 +1,6 @@
+# git ignore file
+*.suo
+*.ncb
+*.user
+/bin
+/obj
