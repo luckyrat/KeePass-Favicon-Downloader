@@ -1,6 +1,10 @@
 KeePass Favicon Downloader plugin
 =================================
 
+Version 1.7.1 changes
+---------------------
+- Update checking URL needs to be a property instead of a field
+
 Version 1.7.0 changes
 ---------------------
 - Entries with URLs stored in the title instead of URL field can now be processed

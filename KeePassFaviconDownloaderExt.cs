@@ -46,7 +46,10 @@ namespace KeePassFaviconDownloader
 		// The plugin remembers its host in this variable.
 		private IPluginHost m_host = null;
 
-        new string UpdateUrl = "https://raw.github.com/luckyrat/KeePass-Favicon-Downloader/master/versionInfo.txt";
+        public override string UpdateUrl
+        {
+            get { return "https://raw.github.com/luckyrat/KeePass-Favicon-Downloader/master/versionInfo.txt"; }
+        }
 
         private ToolStripSeparator m_tsSeparator1 = null;
         private ToolStripSeparator m_tsSeparator2 = null;
