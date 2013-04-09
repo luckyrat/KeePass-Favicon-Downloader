@@ -66,7 +66,7 @@ namespace KeePassFaviconDownloader
 			if(host == null) return false;
 			m_host = host;
 
-			// Add a seperator and menu item to the 'Tools' menu
+			// Add a separator and menu item to the 'Tools' menu
 			ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
 			m_tsSeparator1 = new ToolStripSeparator();
 			tsMenu.Add(m_tsSeparator1);
