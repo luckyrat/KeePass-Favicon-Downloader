@@ -38,6 +38,7 @@ using KeePassLib;
 using KeePassLib.Security;
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
+using System.ComponentModel;
 
 namespace KeePassFaviconDownloader
 {
@@ -46,7 +47,7 @@ namespace KeePassFaviconDownloader
 		// The plugin remembers its host in this variable.
 		private IPluginHost m_host = null;
 
-        new string UpdateUrl = "https://raw.github.com/luckyrat/KeePass-Favicon-Downloader/master/versionInfo.txt";
+        public override string UpdateUrl { get { return "https://raw.github.com/luckyrat/KeePass-Favicon-Downloader/master/versionInfo.txt"; } }
 
         private ToolStripSeparator m_tsSeparator1 = null;
         private ToolStripSeparator m_tsSeparator2 = null;
@@ -54,6 +55,9 @@ namespace KeePassFaviconDownloader
         private ToolStripMenuItem menuDownloadFavicons = null;
         private ToolStripMenuItem menuDownloadGroupFavicons = null;
         private ToolStripMenuItem menuDownloadEntryFavicons = null;
+
+        private BackgroundWorker worker = null;
+        private StatusProgressForm progressForm = null;
 
         /// <summary>
         /// Initializes the plugin using the specified KeePass host.
@@ -93,8 +97,70 @@ namespace KeePassFaviconDownloader
             menuDownloadEntryFavicons.Click += OnMenuDownloadEntryFavicons;
             ecm.Items.Add(menuDownloadEntryFavicons);
 
+            // Initialize the background worker
+            worker = new BackgroundWorker();
+            worker.WorkerSupportsCancellation = true;
+            worker.WorkerReportsProgress = true;
+            worker.DoWork += worker_DownloadFavicons;
+            worker.ProgressChanged += worker_ProgressChanged;
+            worker.RunWorkerCompleted += worker_RunWorkerCompleted;
+
 			return true; // Initialization successful
 		}
+
+        void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            this.m_host.MainWindow.Enabled = true;
+            progressForm.Hide();
+            progressForm.Close();
+            progressForm = null;
+
+            var errorMessages = (List<string>)e.Result;
+            if (errorMessages.Count > 0)
+            {
+                MessageBox.Show(errorMessages.Count + " errors occurred. The last 5 error messages are shown here.\n" +
+                                                "To see the other messages, select a smaller group of entries and use the right click menu to start the download.\n"
+                                                + String.Join("\n", errorMessages.ToArray(), 0, Math.Min(5, errorMessages.Count)), "Download errors");
+            }
+
+            m_host.MainWindow.UpdateUI(false, null, false, null,
+                true, null, true);
+            m_host.MainWindow.UpdateTrayIcon();
+        }
+
+        void worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            progressForm.SetProgress((uint)e.ProgressPercentage);
+        }
+
+        void worker_DownloadFavicons(object sender, DoWorkEventArgs e)
+        {
+            var entries = (KeePassLib.Collections.PwObjectList<PwEntry>)e.Argument;
+            int progress = 0;
+            uint downloadsCompleted = 0;
+            var errorMessages = new List<string>();
+
+            foreach (PwEntry pwe in entries)
+            {
+                string errorMessage = "";
+                downloadOneFavicon(pwe, ref errorMessage);
+                if (errorMessage != "")
+                {
+                    errorMessages.Add(errorMessage);
+                }
+
+                downloadsCompleted++;
+                progress = (int)(100 * downloadsCompleted / entries.UCount);
+                worker.ReportProgress(progress);
+                System.Threading.Thread.Sleep(100);
+                if (worker.CancellationPending || progressForm.UserCancelled) {
+                    e.Cancel = true;
+                    break;
+                };
+            }
+
+            e.Result = errorMessages;
+        }
 
         /// <summary>
         /// Terminates this instance.
@@ -155,7 +221,6 @@ namespace KeePassFaviconDownloader
         /// <param name="e"></param>
         private void OnMenuDownloadEntryFavicons(object sender, EventArgs e)
         {
-            
             PwEntry[] pwes = m_host.MainWindow.GetSelectedEntries();
             Debug.Assert(pwes != null); if (pwes == null || pwes.Length == 0) return;
             downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry>.FromArray(pwes));            
@@ -167,50 +232,13 @@ namespace KeePassFaviconDownloader
         /// <param name="entries">The entries.</param>
         private void downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry> entries)
         {
-            StatusProgressForm progressForm = new StatusProgressForm();
+            progressForm = new StatusProgressForm();
+            this.m_host.MainWindow.Enabled = false;
 
             progressForm.InitEx("Downloading Favicons", true, false, m_host.MainWindow);
             progressForm.Show();
             progressForm.SetProgress(0);
-
-            float progress = 0;
-            float outputLength = (float)entries.UCount;
-            int downloadsCompleted = 0;
-            string errorMessage = "";
-            int errorCount = 0;
-
-            foreach (PwEntry pwe in entries)
-            {
-                string message = "";
-                downloadOneFavicon(pwe, ref message);
-                if (message != "")
-                {
-                    errorMessage = message;
-                    errorCount++;
-                }
-
-                downloadsCompleted++;
-                progress = (downloadsCompleted / outputLength) * 100;
-                progressForm.SetProgress((uint)Math.Floor(progress));
-                System.Threading.Thread.Sleep(100);
-                if (progressForm.UserCancelled)
-                    break;
-            }
-
-            progressForm.Hide();
-            progressForm.Close();
-
-            if (errorMessage != "")
-            {
-                if (errorCount == 1)
-                    MessageBox.Show(errorMessage, "Download error");
-                else
-                    MessageBox.Show(errorCount + " errors occurred. The last error message is shown here. To see the other messages, select a smaller group of entries and use the right click menu to start the download. " + errorMessage, "Download errors");
-            }
-            
-            m_host.MainWindow.UpdateUI(false, null, false, null,
-                true, null, true);
-            m_host.MainWindow.UpdateTrayIcon();
+            worker.RunWorkerAsync(entries);
         }
 
         /// <summary>
