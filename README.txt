@@ -1,6 +1,10 @@
 KeePass Favicon Downloader plugin
 =================================
 
+Version 1.7.2 changes
+---------------------
+- Protection from cyclic redirect (thanks to @DarkWanderer)
+
 Version 1.7.1 changes
 ---------------------
 - Update checking URL needs to be a property instead of a field

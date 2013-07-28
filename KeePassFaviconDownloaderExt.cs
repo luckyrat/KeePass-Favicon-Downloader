@@ -374,6 +374,7 @@ namespace KeePassFaviconDownloader
 
             try
             {
+                int counter = 0; // Protection from cyclic redirect 
                 Uri nextUri = new Uri(fullURL);
                 do
                 {
@@ -383,8 +384,8 @@ namespace KeePassFaviconDownloader
 
                     // Old school meta refreshes need to parsed
                     nextUri = getMetaRefreshLink(responseURI, hdoc);
-
-                } while (nextUri != null);
+                    counter++;
+                } while (nextUri != null && counter < 16); // Sixteen redirects would be more than enough.
 
 
             }
