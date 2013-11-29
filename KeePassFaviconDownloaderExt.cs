@@ -528,8 +528,16 @@ namespace KeePassFaviconDownloader
 
             try
             {
-                Image imgNew = new Bitmap(img, new Size(16, 16));
-
+                Bitmap imgNew = new Bitmap(16, 16);
+                imgNew.SetResolution(img.HorizontalResolution, img.VerticalResolution);
+                using (Graphics g = Graphics.FromImage(imgNew))
+                {
+                    // set the resize quality modes to high quality
+                    g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                    g.DrawImage(img, 0, 0, imgNew.Width, imgNew.Height);
+                }
                 ms = new MemoryStream();
                 imgNew.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
                 return true;
