@@ -241,27 +241,16 @@ namespace KeePassFaviconDownloader
             int dotIndex = url.IndexOf(".");
             if (dotIndex >= 0)
             {
-                string protocol = "http";
-                string fullURL = url;
-
-                // trim any path data
-                int slashDotIndex = url.IndexOf("/", dotIndex);
-                if (slashDotIndex >= 0)
-                    url = url.Substring(0, slashDotIndex);
-
-                // If there is a protocol/scheme prepended to the URL, strip it off.
-                int protocolEndIndex = url.LastIndexOf("/");
-                if (protocolEndIndex >= 0)
-                {
-                    protocol = url.Substring(0,protocolEndIndex-2);
-                    url = url.Substring(protocolEndIndex + 1);
-                }
+                Uri fullURI = new Uri((url.StartsWith("http://")||url.StartsWith("https://"))?url:"http://"+url,UriKind.Absolute);
 
                 MemoryStream ms = null;
-                bool success = getFromFaviconExplicitLocation(url, protocol, fullURL, ref ms, ref message);
+                Uri lastURI = getFromFaviconExplicitLocation(fullURI, ref ms, ref message);
+                bool success = (lastURI != null) && lastURI.OriginalString.Equals("http://success");
 
                 if (!success)
-                    success = getFromFaviconStandardLocation(url, protocol, ref ms, ref message);
+                {
+                    success = getFavicon(new Uri((lastURI==null)?fullURI:lastURI,"/favicon.ico"), ref ms, ref message);
+                }
 
                 if (!success)
                     return;
@@ -294,23 +283,6 @@ namespace KeePassFaviconDownloader
                 m_host.Database.UINeedsIconUpdate = true;
             }
 
-        }
-        private Uri reconcileURI(Uri baseUri, string newUri)
-        {
-            // If there is nothing new, then return the original Uri
-            if (String.IsNullOrEmpty(newUri))
-            {
-                return baseUri;
-            }
-
-            // If the newURI is a full URI, then return that, otherwise we'll get a UriFormatException
-            try
-            {
-                return new Uri(newUri);
-            }
-            catch (Exception) { }
-
-            return new Uri(baseUri, newUri);
         }
 
         private Uri getMetaRefreshLink(Uri uri, HtmlAgilityPack.HtmlDocument hdoc)
@@ -352,30 +324,27 @@ namespace KeePassFaviconDownloader
                 return null;
             }
 
-            return reconcileURI(uri, redirect);
+            return new Uri(uri, redirect);
         }
 
         /// <summary>
         /// Gets a memory stream representing an image from an explicit favicon location.
         /// </summary>
-        /// <param name="url">The URL.</param>
-        /// <param name="protocol">i.e http or https</param>
+        /// <param name="fullURI">The URI.</param>
         /// <param name="ms">The memory stream (output).</param>
         /// <param name="message">Any error message is sent back through this string.</param>
         /// <returns></returns>
-        private bool getFromFaviconExplicitLocation(string url, string protocol, string fullURL, ref MemoryStream ms, ref string message)
+        private Uri getFromFaviconExplicitLocation(Uri fullURI, ref MemoryStream ms, ref string message)
         {
-            if (protocol != "https")
-                protocol = "http";
-                        
             HtmlWeb hw = new HtmlWeb();
+            hw.UserAgent = "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0";
             HtmlAgilityPack.HtmlDocument hdoc = null;
             Uri responseURI = null; 
 
             try
             {
                 int counter = 0; // Protection from cyclic redirect 
-                Uri nextUri = new Uri(fullURL);
+                Uri nextUri = fullURI;
                 do
                 {
                     // HtmlWeb.Load will follow 302 and 302 redirects to alternate URIs
@@ -391,11 +360,12 @@ namespace KeePassFaviconDownloader
             }
             catch (Exception)
             {
-                return false;
+                return responseURI;
             }
 
+
             if (hdoc == null)
-                return false;
+                return responseURI;
 
             string faviconLocation = "";
             try
@@ -427,40 +397,23 @@ namespace KeePassFaviconDownloader
             catch (Exception)
             {
             }
-            if (string.IsNullOrEmpty(faviconLocation))
-                return false;
+            if (String.IsNullOrEmpty(faviconLocation))
+            {
+                return responseURI;
+            }
 
-            faviconLocation = reconcileURI(responseURI, faviconLocation).AbsoluteUri; 
-            return getFavicon(faviconLocation, ref ms, ref message);
-
-        }
-
-        /// <summary>
-        /// Gets a memory stream representing an image from a standard favicon location.
-        /// </summary>
-        /// <param name="url">The URL.</param>
-        /// <param name="protocol">i.e http or https</param>
-        /// <param name="ms">The memory stream (output).</param>
-        /// <param name="message">Any error message is sent back through this string.</param>
-        /// <returns></returns>
-        private bool getFromFaviconStandardLocation(string url, string protocol, ref MemoryStream ms, ref string message)
-        {
-            if (protocol != "https")
-                protocol = "http";
-
-            return getFavicon(protocol + "://" + url + "/favicon.ico", ref ms, ref message);
+            return (getFavicon(new Uri(responseURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):responseURI;
 
         }
 
         /// <summary>
         /// Gets a memory stream representing an image from a standard favicon location.
         /// </summary>
-        /// <param name="url">The URL.</param>
-        /// <param name="protocol">i.e http or https</param>
+        /// <param name="uri">The URI.</param>
         /// <param name="ms">The memory stream (output).</param>
         /// <param name="message">Any error message is sent back through this string.</param>
         /// <returns></returns>
-        private bool getFavicon(string url, ref MemoryStream ms, ref string message)
+        private bool getFavicon(Uri uri, ref MemoryStream ms, ref string message)
         {
             Stream s = null;
             Image img = null;
@@ -468,7 +421,8 @@ namespace KeePassFaviconDownloader
 
             try
             {
-                WebRequest webreq = WebRequest.Create(url);
+                WebRequest webreq = WebRequest.Create(uri);
+                ((HttpWebRequest)webreq).UserAgent = "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0";
                 webreq.Timeout = 10000; // don't think it's expecting too much for a few KB to be delivered inside 10 seconds.
 
                 WebResponse response = webreq.GetResponse();
@@ -478,10 +432,10 @@ namespace KeePassFaviconDownloader
                     message += "Could not download favicon(s). This may be a temporary problem so you may want to try again later or post the contents of this error message on the KeePass Favicon Download forums at http://sourceforge.net/projects/keepass-favicon/support. Technical information which may help diagnose the problem is listed below, you can copy it to your clipboard by just clicking on this message and pressing CTRL-C.\n - No response from server";
                     return false;
                 }
-                if( string.Compare(response.ResponseUri.ToString(), url, StringComparison.InvariantCultureIgnoreCase) != 0 )
+                if( uri != response.ResponseUri )
                 {
                     //Redirect ?
-                    return getFavicon(response.ResponseUri.ToString(), ref ms, ref message);
+                    return getFavicon(response.ResponseUri, ref ms, ref message);
                 }
 
                 s = response.GetResponseStream();
