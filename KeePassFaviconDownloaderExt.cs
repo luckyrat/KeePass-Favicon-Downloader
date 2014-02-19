@@ -500,7 +500,12 @@ namespace KeePassFaviconDownloader
                 
                 // END change
 
-                try { img = (new Icon(memStream)).ToBitmap(); }
+                try
+                {
+                    Icon icon = new Icon(memStream);
+                    icon = new Icon(icon, 16, 16);
+                    img = icon.ToBitmap();
+                }
                 catch (Exception)
                 {
                     // This shouldn't be useful unless someone has messed up their favicon format
