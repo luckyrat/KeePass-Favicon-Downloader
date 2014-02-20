@@ -36,6 +36,7 @@ using KeePass.Resources;
 
 using KeePassLib;
 using KeePassLib.Security;
+using KeePassLib.Interfaces;
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 
@@ -185,6 +186,9 @@ namespace KeePassFaviconDownloader
             foreach (PwEntry pwe in entries)
             {
                 string message = "";
+
+                progressForm.SetText("Title: " + pwe.Strings.ReadSafe("Title") + "; User Name: " + pwe.Strings.ReadSafe("UserName") + "; URL: " + pwe.Strings.ReadSafe("URL"),LogStatusType.Info);
+
                 downloadOneFavicon(pwe, ref message);
                 if (message != "")
                 {
@@ -208,7 +212,7 @@ namespace KeePassFaviconDownloader
                 if (errorCount == 1)
                     MessageBox.Show(errorMessage, "Download error");
                 else
-                    MessageBox.Show(errorCount + " errors occurred. The last error message is shown here. To see the other messages, select a smaller group of entries and use the right click menu to start the download. " + errorMessage, "Download errors");
+                    MessageBox.Show(errorCount + " errors occurred. The last error message is shown here. To see the other messages, select a smaller group of entries and use the right click menu to start the download.\n" + errorMessage, "Download errors");
             }
             
             m_host.MainWindow.UpdateUI(false, null, false, null,
@@ -241,7 +245,15 @@ namespace KeePassFaviconDownloader
             int dotIndex = url.IndexOf(".");
             if (dotIndex >= 0)
             {
-                Uri fullURI = new Uri((url.StartsWith("http://")||url.StartsWith("https://"))?url:"http://"+url,UriKind.Absolute);
+                Uri fullURI = null;
+                try {
+                    fullURI = new Uri((url.StartsWith("http://")||url.StartsWith("https://"))?url:"http://"+url,UriKind.Absolute);
+                }
+                catch (Exception ex)
+                {
+                    message += url + "\n" + ex.Message;
+                    return;
+                }
 
                 MemoryStream ms = null;
                 Uri lastURI = getFromFaviconExplicitLocation(fullURI, ref ms, ref message);
