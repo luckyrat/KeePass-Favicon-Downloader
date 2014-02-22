@@ -1,3 +1,3 @@
 :
-Favicon Downloader:1.7.2.0
+Favicon Downloader:1.8.0.0
 :

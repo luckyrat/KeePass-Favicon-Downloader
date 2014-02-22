@@ -1,7 +1,7 @@
 /*
   KeePass Favicon Downloader - KeePass plugin that downloads and stores
   favicons for entries with web URLs.
-  Copyright (C) 2009-2011 Chris Tomlinson <luckyrat@users.sourceforge.net>
+  Copyright (C) 2009-2014 Chris Tomlinson <luckyrat@users.sourceforge.net>
   Thanks to mausoma and psproduction for their contributions
 
   This program is free software; you can redistribute it and/or modify
@@ -187,12 +187,12 @@ namespace KeePassFaviconDownloader
             {
                 string message = "";
 
-                progressForm.SetText("Title: " + pwe.Strings.ReadSafe("Title") + "; User Name: " + pwe.Strings.ReadSafe("UserName") + "; URL: " + pwe.Strings.ReadSafe("URL"),LogStatusType.Info);
+                progressForm.SetText("Title: " + pwe.Strings.ReadSafe("Title") + "; User Name: " + pwe.Strings.ReadSafe("UserName"),LogStatusType.Info);
 
                 downloadOneFavicon(pwe, ref message);
                 if (message != "")
                 {
-                    errorMessage = message;
+                    errorMessage = "For an entry with URL '"+pwe.Strings.ReadSafe("URL")+"': " + message;
                     errorCount++;
                 }
 

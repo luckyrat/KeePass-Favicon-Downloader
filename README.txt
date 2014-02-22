@@ -1,23 +1,18 @@
 KeePass Favicon Downloader plugin
 =================================
 
-Version 1.7.2 changes
+Version 1.8.0 changes
 ---------------------
-- Protection from cyclic redirect (thanks to @DarkWanderer)
-
-Version 1.7.1 changes
----------------------
-- Update checking URL needs to be a property instead of a field
-
-Version 1.7.0 changes
----------------------
-- Entries with URLs stored in the title instead of URL field can now be processed
-- Favicons that are found after a meta tag redirection can now be downloaded (thanks to @ajithhub)
-- KeePass can now detect future KeePass Favicon Downloader plugin updates
+- Higher quality icons are created in some circumstances
+- Entries that contain URLs with no protocol (https:// or https://) can now be downloaded
+- Changed website downloading code to increase compatibility with unusual web sites
+- Progress form shows current entry title and username
+- URL of entry added to error message
+(Most improvements courtesy of @univerio and @boxmaker)
 
 Pre-requisites
 --------------
-KeePass Password Safe 2.09+ (latest version tested only on 2.21)
+KeePass Password Safe 2.09+ (latest version tested only on 2.25)
 
 Installation instructions
 -------------------------
@@ -40,10 +35,24 @@ manually removed by using the standard KeePass "choose icons" dialog.
 
 Support
 -------
-Try searching or posting on the forum: https://sourceforge.net/projects/keepass-favicon/forums
+Try searching or posting on the forum: https://sourceforge.net/p/keepass-favicon/discussion/
 
 Old changelog
 =============
+
+Version 1.7.2 changes
+---------------------
+- Protection from cyclic redirect (thanks to @DarkWanderer)
+
+Version 1.7.1 changes
+---------------------
+- Update checking URL needs to be a property instead of a field
+
+Version 1.7.0 changes
+---------------------
+- Entries with URLs stored in the title instead of URL field can now be processed
+- Favicons that are found after a meta tag redirection can now be downloaded (thanks to @ajithhub)
+- KeePass can now detect future KeePass Favicon Downloader plugin updates
 
 Version 1.6.0 changes
 ---------------------
