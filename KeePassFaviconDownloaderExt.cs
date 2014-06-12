@@ -359,6 +359,15 @@ namespace KeePassFaviconDownloader
                 Uri nextUri = fullURI;
                 do
                 {
+                	// Some site needs a CookieContainer so that a now empty page is returned
+                    //  try "http://www.prettygreen.com/"
+                    hw.PreRequest += request =>
+                        {
+                            request.CookieContainer = new System.Net.CookieContainer();
+                            return true;
+                        };
+                    
+
                     // HtmlWeb.Load will follow 302 and 302 redirects to alternate URIs
                     hdoc = hw.Load(nextUri.AbsoluteUri);
                     responseURI = hw.ResponseUri;
