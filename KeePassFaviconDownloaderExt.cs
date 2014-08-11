@@ -403,7 +403,8 @@ namespace KeePassFaviconDownloader
                             try
                             {
                                 faviconLocation = node.Attributes["href"].Value;
-                                break;
+                                // Don't break the loop, because there could be many <link rel="icon"> nodes
+                                // We should read the last one, like web browsers do
                             }
                             catch (Exception)
                             {
