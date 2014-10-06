@@ -342,6 +342,8 @@ namespace KeePassFaviconDownloader
         bool PreRequest_EventHandler(HttpWebRequest request)
         {
             request.CookieContainer = new System.Net.CookieContainer();
+            request.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
+            request.Headers.Add(HttpRequestHeader.AcceptLanguage, "*");
             return true;
         }
 
@@ -398,7 +400,8 @@ namespace KeePassFaviconDownloader
                     try
                     {
                         HtmlAttribute r = node.Attributes["rel"];
-                        if (r.Value.ToLower().CompareTo("shortcut icon") == 0 || r.Value.ToLower().CompareTo("icon") == 0)
+                        string val = r.Value.ToLower().Replace("shortcut","").Trim();
+                        if (val == "icon")
                         {
                             try
                             {
@@ -445,6 +448,9 @@ namespace KeePassFaviconDownloader
             {
                 WebRequest webreq = WebRequest.Create(uri);
                 ((HttpWebRequest)webreq).UserAgent = "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0";
+                ((HttpWebRequest)webreq).CookieContainer = new System.Net.CookieContainer();
+                ((HttpWebRequest)webreq).Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
+                ((HttpWebRequest)webreq).Headers.Add(HttpRequestHeader.AcceptLanguage, "*");
                 webreq.Timeout = 10000; // don't think it's expecting too much for a few KB to be delivered inside 10 seconds.
 
                 WebResponse response = webreq.GetResponse();

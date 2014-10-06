@@ -1,18 +1,14 @@
 KeePass Favicon Downloader plugin
 =================================
 
-Version 1.8.0 changes
+Version 1.9.0 changes
 ---------------------
-- Higher quality icons are created in some circumstances
-- Entries that contain URLs with no protocol (https:// or https://) can now be downloaded
-- Changed website downloading code to increase compatibility with unusual web sites
-- Progress form shows current entry title and username
-- URL of entry added to error message
-(Most improvements courtesy of @univerio and @boxmaker)
+- Improved website downloading code to increase compatibility with unusual web sites
+(Thanks to @incognito1234 for the CookieContainer tip and @kuc RE multiple link@rel=icon elements)
 
 Pre-requisites
 --------------
-KeePass Password Safe 2.09+ (latest version tested only on 2.25)
+KeePass Password Safe 2.09+ (latest version tested only on 2.27)
 
 Installation instructions
 -------------------------
@@ -22,6 +18,10 @@ KeePass Password Safe installation folder
 
 Known issues
 ------------
+
+UPDATE 2014-07-03: Both known issues below can now be worked around using the "Custom Icon Dashboarder"
+plugin by @incognito1234 available at https://sourceforge.net/projects/keepasscustomicondashboarder/
+
 1) Sharing a database between 32bit and 64bit machines
 may result in duplicate favicons being stored in the database.
 This shouldn't have a serious impact but is a bit wasteful so
@@ -30,7 +30,7 @@ I would like to improve this one day.
 2) Similar issue when favicons change - there is no automatic method to track
 which favicons are actually in use so old icons will stay orphaned in the database.
 
-Note that in both siuations mentioned above, un-necessary icons can be
+Note that in both siuations mentioned above, un-necessary icons can also be
 manually removed by using the standard KeePass "choose icons" dialog.
 
 Support
@@ -39,6 +39,15 @@ Try searching or posting on the forum: https://sourceforge.net/p/keepass-favicon
 
 Old changelog
 =============
+
+Version 1.8.0 changes
+---------------------
+- Higher quality icons are created in some circumstances
+- Entries that contain URLs with no protocol (https:// or https://) can now be downloaded
+- Changed website downloading code to increase compatibility with unusual web sites
+- Progress form shows current entry title and username
+- URL of entry added to error message
+(Most improvements courtesy of @univerio and @boxmaker)
 
 Version 1.7.2 changes
 ---------------------
