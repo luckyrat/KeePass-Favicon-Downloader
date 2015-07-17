@@ -2,5 +2,11 @@
 *.suo
 *.ncb
 *.user
+*.userprefs
+*.plgx
+*.deb
+*~
 /bin
 /obj
+/plugin
+/package
