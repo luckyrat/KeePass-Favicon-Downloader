@@ -1,0 +1,27 @@
+KPDir = /usr/lib/keepass2
+KPPDir = $(KPDir)/plugins
+
+all: bin/Debug/KeePassFaviconDownloader.dll
+
+bin/Debug/KeePassFaviconDownloader.dll: KeePassFaviconDownloader.sln \
+										KeePassFaviconDownloader.csproj \
+										KeePassFaviconDownloaderExt.cs \
+										Properties/AssemblyInfo.cs \
+										HtmlAgilityPack.dll
+	xbuild /p:Configuration=Debug KeePassFaviconDownloader.sln /p:TargetFrameworkVersion="v4.5"
+
+install: bin/Debug/KeePassFaviconDownloader.dll
+	\mkdir -p "$(DESTDIR)$(KPPDir)"
+	\cp "bin/Debug/KeePassFaviconDownloader.dll" "$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.dll"
+	\cp "bin/Debug/HtmlAgilityPack.dll" "$(DESTDIR)$(KPPDir)/HtmlAgilityPack.dll"
+
+clean: 
+	\rm -rf bin obj
+
+distclean: clean
+
+uninstall:
+	\rm -f "$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.dll"
+	\rm -f "$(DESTDIR)$(KPPDir)/HtmlAgilityPack.dll"
+
+.PHONY: all install clean distclean uninstall
