@@ -3,20 +3,20 @@ KPPDir = $(KPDir)/plugins
 
 all: bin/Debug/KeePassFaviconDownloader.dll
 
-bin/Debug/KeePassFaviconDownloader.dll: KeePassFaviconDownloader.sln \
-										KeePassFaviconDownloader.csproj \
-										KeePassFaviconDownloaderExt.cs \
-										Properties/AssemblyInfo.cs \
-										HtmlAgilityPack.dll
-	xbuild /p:Configuration=Debug KeePassFaviconDownloader.sln /p:TargetFrameworkVersion="v4.5"
+bin/KeePassFaviconDownloader.dll: src/KeePassFaviconDownloader.sln \
+										src/KeePassFaviconDownloader.csproj \
+										src/KeePassFaviconDownloaderExt.cs \
+										src/Properties/AssemblyInfo.cs \
+										src/HtmlAgilityPack.dll
+	xbuild /p:Configuration=Debug /p:IntermediateOutputPath="../build/" /p:OutputPath="../bin/" "src/KeePassFaviconDownloader.sln" /p:TargetFrameworkVersion="v4.5"
 
-install: bin/Debug/KeePassFaviconDownloader.dll
+install: bin/KeePassFaviconDownloader.dll
 	\mkdir -p "$(DESTDIR)$(KPPDir)"
-	\cp "bin/Debug/KeePassFaviconDownloader.dll" "$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.dll"
-	\cp "bin/Debug/HtmlAgilityPack.dll" "$(DESTDIR)$(KPPDir)/HtmlAgilityPack.dll"
+	\cp "bin/KeePassFaviconDownloader.dll" "$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.dll"
+	\cp "bin/HtmlAgilityPack.dll" "$(DESTDIR)$(KPPDir)/HtmlAgilityPack.dll"
 
 clean: 
-	\rm -rf bin obj
+	\rm -rf build bin
 
 distclean: clean
 
