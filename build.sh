@@ -1,13 +1,15 @@
 #!/bin/bash
 
-# Build project
-xbuild KeePassFaviconDownloader.sln
+# Build project (DLL for Debug)
+#xbuild /p:Configuration=Release KeePassFaviconDownloader.sln /p:TargetFrameworkVersion="v4.5"
+#rm -rf bin/ obj/
 
 # Create temporary directory
 KPTempDir="./plugin"
 rm -rf "$KPTempDir"
 mkdir "$KPTempDir"
 # Copy files
+cp ./*.cs "$KPTempDir/"
 cp ./HtmlAgilityPack.dll "$KPTempDir/"
 cp ./KeePassFaviconDownloader.csproj "$KPTempDir/"
 cp -r ./Properties "$KPTempDir/"
