@@ -13,7 +13,7 @@ keepass2-plugin-favicondownloader (1.9.0) unstable; urgency=low
   * Improved website downloading code to increase compatibility with unusual web sites
     (Thanks to @incognito1234 for the CookieContainer tip and @kuc RE multiple link@rel=icon elements)
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Mon, 6 Oct 2014 20:52:56 +0100
 
 keepass2-plugin-favicondownloader (1.8.0) unstable; urgency=low
 
@@ -24,19 +24,19 @@ keepass2-plugin-favicondownloader (1.8.0) unstable; urgency=low
   * URL of entry added to error message
     (Most improvements courtesy of @univerio and @boxmaker)
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 22 Feb 2014 12:32:09 +0000
 
 keepass2-plugin-favicondownloader (1.7.2) unstable; urgency=low
 
   * Protection from cyclic redirect (thanks to @DarkWanderer)
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sun, 28 Jul 2013 16:10:43 +0100
 
 keepass2-plugin-favicondownloader (1.7.1) unstable; urgency=low
 
- * Update checking URL needs to be a property instead of a field
+  * Update checking URL needs to be a property instead of a field
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Tue, 9 Apr 2013 23:27:27 +0100
 
 keepass2-plugin-favicondownloader (1.7.0) unstable; urgency=low
 
@@ -44,7 +44,7 @@ keepass2-plugin-favicondownloader (1.7.0) unstable; urgency=low
   * Favicons that are found after a meta tag redirection can now be downloaded (thanks to @ajithhub)
   * KeePass can now detect future KeePass Favicon Downloader plugin updates
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Thu, 21 Mar 2013 01:21:09 +0000
 
 keepass2-plugin-favicondownloader (1.6.0) unstable; urgency=low
 
@@ -57,48 +57,48 @@ keepass2-plugin-favicondownloader (1.6.0) unstable; urgency=low
     - Exact URL (page) now queried for favicon rather than domain root
     - Entry's modification date is now updated (no new history entry is created though; backups before mass favicon downloading is still recommended)
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sun, 8 May 2011 19:19:49 +0000
 
 keepass2-plugin-favicondownloader (1.5.0) unstable; urgency=low
 
   * The previous favicon service provider dissapeared so I'm now using the HTMLAgilityPack to manage the whole download procedure.
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sun, 29 Aug 2010 21:22:12 +0000
 
 keepass2-plugin-favicondownloader (1.4.1) unstable; urgency=low
 
   * It will hopefully work correctly on .NET 2.0 now.
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Tue, 15 Dec 2009 23:39:44 +0000
 
 keepass2-plugin-favicondownloader (1.4.0) unstable; urgency=low
 
   * If the webservice fails or returns a "default/unknown" icon then we now try grabbing it directly from the target website. It will only work if the icon is in the traditional location (/favicon.ico).
     Only the last error message is displayed now (a future improvement might be to log all errors somewhere but for now, this at least avoids having to click through hundreds of error messages if the favicon webservice is unavailable during bulk favicon downloads).
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Mon, 16 Nov 2009 23:43:44 +0000
 
 keepass2-plugin-favicondownloader (1.3.0) unstable; urgency=low
 
   * KeePass tray icon re-enabled after Favicons have been downloaded.
   * Fixed a bug where some KeePass features stopped working after downloading favicons (e.g. autotype)
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 7 Nov 2009 17:47:48 +0000
 
 keepass2-plugin-favicondownloader (1.2.0) unstable; urgency=low
 
   * Most download errors should now be displayed to the user rather than crashing KeePass.
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Mon, 2 Nov 2009 23:12:23 +0000
 
 keepass2-plugin-favicondownloader (1.1.0) unstable; urgency=low
 
   * URLs without http:// in front of them are now processed.
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Tue, 6 Oct 2009 20:57:08 +0000
 
 keepass2-plugin-favicondownloader (1.0.0) unstable; urgency=low
 
   * Initial release.
 
- -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Chris Tomlinson <luckyrat@users.sourceforge.net>  Mon, 5 Oct 2009 00:06:39 +0000
