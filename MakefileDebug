@@ -1,5 +1,5 @@
 KPDir = /usr/lib/keepass2
-KPPDir = $(KPDir)/plugins
+KPPDir = $(KPDir)/Plugins
 
 all: bin/Debug/KeePassFaviconDownloader.dll
 
@@ -15,7 +15,7 @@ install: bin/KeePassFaviconDownloader.dll
 	\cp "bin/KeePassFaviconDownloader.dll" "$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.dll"
 	\cp "bin/HtmlAgilityPack.dll" "$(DESTDIR)$(KPPDir)/HtmlAgilityPack.dll"
 
-clean: 
+clean:
 	\rm -rf build bin
 
 distclean: clean

@@ -1,5 +1,5 @@
 KPDir = /usr/lib/keepass2
-KPPDir = $(KPDir)/plugins
+KPPDir = $(KPDir)/Plugins
 
 all: KeePassFaviconDownloader.plgx
 
@@ -16,7 +16,7 @@ install: KeePassFaviconDownloader.plgx
 		"$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.plgx"
 
 clean:
-	\rm -rf "KeePassFaviconDownloader.plgx"
+	\rm -f "KeePassFaviconDownloader.plgx"
 
 distclean: clean
 
