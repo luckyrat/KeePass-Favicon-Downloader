@@ -7,6 +7,5 @@
 *.deb
 *~
 /bin
-/obj
-/plugin
-/package
+/build
+/debian/keepass2-plugin-favicondownloader*
