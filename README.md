@@ -45,4 +45,6 @@ Make Release: `make`
 
 Make Debug: `make -f MakefileDebug`
 
-Build Debian Package: `dpkg-buildpackage -b -rfakeroot -us -uc`
+Build Debian Package (using default `fakeroot`): `dpkg-buildpackage -b -us -uc`
+
+Build Debian Package (using `sudo`): `dpkg-buildpackage -b -rsudo -us -uc`
