@@ -39,12 +39,24 @@
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <Choose>
+    <When Condition=" '$(OS)' == 'Windows_NT' ">
+      <PropertyGroup>
+        <KeepassRoot>C:\Program Files (x86)\KeePass Password Safe 2\</KeepassRoot>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <KeepassRoot>\usr\lib\keepass2\</KeepassRoot>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
     <Reference Include="HtmlAgilityPack">
       <HintPath>HtmlAgilityPack.dll</HintPath>
     </Reference>
     <Reference Include="KeePass">
-      <HintPath>\usr\lib\keepass2\KeePass.exe</HintPath>
+      <HintPath>$(KeepassRoot)KeePass.exe</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
