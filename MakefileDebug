@@ -1,14 +1,21 @@
 KPDir = /usr/lib/keepass2
 KPPDir = $(KPDir)/Plugins
+NUDIR = packages
 
 all: bin/KeePassFaviconDownloader.dll
 
 bin/KeePassFaviconDownloader.dll: KeePassFaviconDownloader.sln \
-								  src/KeePassFaviconDownloader.csproj \
-								  src/KeePassFaviconDownloaderExt.cs \
-								  src/Properties/AssemblyInfo.cs \
-								  src/HtmlAgilityPack.dll
+								  KeePassFaviconDownloader/KeePassFaviconDownloader.csproj \
+								  KeePassFaviconDownloader/src/KeePassFaviconDownloaderExt.cs \
+								  KeePassFaviconDownloader/src/Properties/AssemblyInfo.cs \
+								  KeePassFaviconDownloader/lib/HtmlAgilityPack.dll
 	msbuild /p:Configuration=Debug /p:IntermediateOutputPath="../build/" /p:OutputPath="../bin/" KeePassFaviconDownloader.sln /p:TargetFrameworkVersion="v4.5"
+
+KeePassFaviconDownloader/lib/HtmlAgilityPack.dll: $(NUDIR)/HtmlAgilityPack.1.4.9.5/lib/Net20/HtmlAgilityPack.dll
+	\cp -f $(NUDIR)/HtmlAgilityPack.1.4.9.5/lib/Net20/HtmlAgilityPack.dll KeePassFaviconDownloader/lib/HtmlAgilityPack.dll
+
+$(NUDIR)/HtmlAgilityPack.1.4.9.5/lib/Net20/HtmlAgilityPack.dll:
+	nuget install -o $(NUDIR) ./KeePassFaviconDownloader/packages.config
 
 install: bin/KeePassFaviconDownloader.dll
 	\mkdir -p "$(DESTDIR)$(KPPDir)"
@@ -16,7 +23,7 @@ install: bin/KeePassFaviconDownloader.dll
 	\cp "bin/HtmlAgilityPack.dll" "$(DESTDIR)$(KPPDir)/HtmlAgilityPack.dll"
 
 clean:
-	\rm -rf build bin
+	\rm -rf "bin" "build" "$(NUDIR)" "KeePassFaviconDownloader/lib/HtmlAgilityPack.dll"
 
 distclean: clean
 

@@ -12,3 +12,6 @@
 /debian/debhelper-build-stamp
 /debian/files
 /debian/keepass2-plugin-favicondownloader*
+KeePassFaviconDownloader/lib
+/packages
+/plugin

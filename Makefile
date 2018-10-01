@@ -1,22 +1,32 @@
 KPDir = /usr/lib/keepass2
 KPPDir = $(KPDir)/Plugins
+NUDIR = packages
+PLGXDIR = plugin
 
-all: KeePassFaviconDownloader.plgx
+all: $(PLGXDIR)/KeePassFaviconDownloader.plgx
 
-KeePassFaviconDownloader.plgx: src/KeePassFaviconDownloader.csproj \
-							   src/KeePassFaviconDownloaderExt.cs \
-							   src/Properties/AssemblyInfo.cs \
-							   src/HtmlAgilityPack.dll
-	mono "$(KPDir)/KeePass.exe" --plgx-create "src"
-	\mv -f "src.plgx" "KeePassFaviconDownloader.plgx"
+$(PLGXDIR)/KeePassFaviconDownloader.plgx: KeePassFaviconDownloader/KeePassFaviconDownloader.csproj \
+								  KeePassFaviconDownloader/src/KeePassFaviconDownloaderExt.cs \
+								  KeePassFaviconDownloader/src/Properties/AssemblyInfo.cs \
+								  KeePassFaviconDownloader/lib/HtmlAgilityPack.dll
+	mono "$(KPDir)/KeePass.exe" --plgx-create "KeePassFaviconDownloader"
+	\mkdir -p "$(PLGXDIR)"
+	\mv -f KeePassFaviconDownloader.plgx "$(PLGXDIR)/KeePassFaviconDownloader.plgx"
 
-install: KeePassFaviconDownloader.plgx
+KeePassFaviconDownloader/lib/HtmlAgilityPack.dll: $(NUDIR)/HtmlAgilityPack.1.4.9.5/lib/Net20/HtmlAgilityPack.dll
+	\mkdir -p "KeePassFaviconDownloader/lib"
+	\cp -f $(NUDIR)/HtmlAgilityPack.1.4.9.5/lib/Net20/HtmlAgilityPack.dll KeePassFaviconDownloader/lib/HtmlAgilityPack.dll
+
+$(NUDIR)/HtmlAgilityPack.1.4.9.5/lib/Net20/HtmlAgilityPack.dll:
+	nuget install -o $(NUDIR) ./KeePassFaviconDownloader/packages.config
+
+install: $(PLGXDIR)/KeePassFaviconDownloader.plgx
 	\mkdir -p "$(DESTDIR)$(KPPDir)"
-	install -D "KeePassFaviconDownloader.plgx" \
+	install -D "$(PLGXDIR)/KeePassFaviconDownloader.plgx" \
 		"$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.plgx"
 
 clean:
-	\rm -f "KeePassFaviconDownloader.plgx"
+	\rm -rf "$(NUDIR)" "KeePassFaviconDownloader/lib/HtmlAgilityPack.dll" "$(PLGXDIR)"
 
 distclean: clean
 
