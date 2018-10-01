@@ -1,14 +1,14 @@
 KPDir = /usr/lib/keepass2
 KPPDir = $(KPDir)/Plugins
 
-all: bin/Debug/KeePassFaviconDownloader.dll
+all: bin/KeePassFaviconDownloader.dll
 
 bin/KeePassFaviconDownloader.dll: KeePassFaviconDownloader.sln \
 								  src/KeePassFaviconDownloader.csproj \
 								  src/KeePassFaviconDownloaderExt.cs \
 								  src/Properties/AssemblyInfo.cs \
 								  src/HtmlAgilityPack.dll
-	xbuild /p:Configuration=Debug /p:IntermediateOutputPath="../build/" /p:OutputPath="../bin/" KeePassFaviconDownloader.sln /p:TargetFrameworkVersion="v4.5"
+	msbuild /p:Configuration=Debug /p:IntermediateOutputPath="../build/" /p:OutputPath="../bin/" KeePassFaviconDownloader.sln /p:TargetFrameworkVersion="v4.5"
 
 install: bin/KeePassFaviconDownloader.dll
 	\mkdir -p "$(DESTDIR)$(KPPDir)"
