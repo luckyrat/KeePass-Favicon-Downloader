@@ -37,6 +37,9 @@ using KeePass.Resources;
 using KeePassLib;
 using KeePassLib.Security;
 using KeePassLib.Interfaces;
+using KeePassLib.Serialization;
+using KeePassLib.Utility;
+
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 
@@ -296,57 +299,7 @@ namespace KeePassFaviconDownloader
             }
 
         }
-
-        private Uri getMetaRefreshLink(Uri uri, HtmlAgilityPack.HtmlDocument hdoc)
-        {
-            HtmlNodeCollection metas = hdoc.DocumentNode.SelectNodes("/html/head/meta");
-            string redirect = null;
-
-            if (metas == null)
-            {
-                return null;
-            }
-
-            for (int i = 0; i < metas.Count; i++)
-            {
-                HtmlNode node = metas[i];
-                try
-                {
-                    HtmlAttribute httpeq = node.Attributes["http-equiv"];
-                    HtmlAttribute content = node.Attributes["content"];
-                    if (httpeq.Value.ToLower().Equals("location") || httpeq.Value.ToLower().Equals("refresh"))
-                    {
-                        if (content.Value.ToLower().Contains("url"))
-                        {
-                            Match match = Regex.Match(content.Value.ToLower(), @".*?url[\s=]*(\S+)");
-                            if (match.Success)
-                            {
-                                redirect = match.Captures[0].ToString();
-                                redirect = match.Groups[1].ToString();
-                            }
-                        }
-
-                    }
-                }
-                catch (Exception) { }
-            }
-
-            if (String.IsNullOrEmpty(redirect))
-            {
-                return null;
-            }
-
-            return new Uri(uri, redirect);
-        }
-
-        bool PreRequest_EventHandler(HttpWebRequest request)
-        {
-            request.CookieContainer = new System.Net.CookieContainer();
-            request.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
-            request.Headers.Add(HttpRequestHeader.AcceptLanguage, "*");
-            return true;
-        }
-
+      
         /// <summary>
         /// Gets a memory stream representing an image from an explicit favicon location.
         /// </summary>
@@ -355,80 +308,64 @@ namespace KeePassFaviconDownloader
         /// <param name="message">Any error message is sent back through this string.</param>
         /// <returns></returns>
         private Uri getFromFaviconExplicitLocation(Uri fullURI, ref MemoryStream ms, ref string message)
-        {
-            HtmlWeb hw = new HtmlWeb();
-            hw.UserAgent = "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0";
-            HtmlAgilityPack.HtmlDocument hdoc = null;
-            Uri responseURI = null; 
+		{
+			try
+			{
+				// TODO support redirection, authentication, cookies
+				IOConnectionInfo ioc = IOConnectionInfo.FromPath(fullURI.AbsoluteUri);
+				ioc.Properties.Set(IocKnownProperties.UserAgent, "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0");
+				byte[] pbData = IOConnection.ReadFile(ioc);
+				var pbString = System.Text.Encoding.Default.GetString(pbData);
+				HtmlAgilityPack.HtmlDocument hdoc = new HtmlAgilityPack.HtmlDocument();
+				hdoc.LoadHtml(pbString);
 
-            try
-            {
-                int counter = 0; // Protection from cyclic redirect 
-                Uri nextUri = fullURI;
-                do
+                if (hdoc == null)
+    				return fullURI;
+
+                string faviconLocation = "";
+                try
                 {
-                    // A cookie container is needed for some sites to work
-                    hw.PreRequest += PreRequest_EventHandler;
-
-                    // HtmlWeb.Load will follow 302 and 302 redirects to alternate URIs
-                    hdoc = hw.Load(nextUri.AbsoluteUri);
-                    responseURI = hw.ResponseUri;
-
-                    // Old school meta refreshes need to parsed
-                    nextUri = getMetaRefreshLink(responseURI, hdoc);
-                    counter++;
-                } while (nextUri != null && counter < 16); // Sixteen redirects would be more than enough.
-
-
-            }
-            catch (Exception)
-            {
-                return responseURI;
-            }
-
-
-            if (hdoc == null)
-                return responseURI;
-
-            string faviconLocation = "";
-            try
-            {
-                HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
-                for (int i = 0; i < links.Count; i++)
-                {
-                    HtmlNode node = links[i];
-                    try
+                    HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
+                    for (int i = 0; i < links.Count; i++)
                     {
-                        HtmlAttribute r = node.Attributes["rel"];
-                        string val = r.Value.ToLower().Replace("shortcut","").Trim();
-                        if (val == "icon")
+                        HtmlNode node = links[i];
+                        try
                         {
-                            try
+                            HtmlAttribute r = node.Attributes["rel"];
+                            string val = r.Value.ToLower().Replace("shortcut","").Trim();
+                            if (val == "icon")
                             {
-                                faviconLocation = node.Attributes["href"].Value;
-                                // Don't break the loop, because there could be many <link rel="icon"> nodes
-                                // We should read the last one, like web browsers do
-                            }
-                            catch (Exception)
-                            {
+                                try
+                                {
+                                    faviconLocation = node.Attributes["href"].Value;
+                                    // Don't break the loop, because there could be many <link rel="icon"> nodes
+                                    // We should read the last one, like web browsers do
+                                }
+                                catch (Exception)
+                                {
+                                }
                             }
                         }
-                    }
-                    catch (Exception)
-                    {
+                        catch (Exception)
+                        {
+                        }
                     }
                 }
+                catch (Exception)
+                {
+                }
+                if (String.IsNullOrEmpty(faviconLocation))
+                {
+    				return fullURI;
+    			}
+
+				return (getFavicon(new Uri(fullURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):fullURI;
             }
             catch (Exception)
             {
             }
-            if (String.IsNullOrEmpty(faviconLocation))
-            {
-                return responseURI;
-            }
 
-            return (getFavicon(new Uri(responseURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):responseURI;
-
+			return fullURI;         
         }
 
         /// <summary>
@@ -446,39 +383,16 @@ namespace KeePassFaviconDownloader
 
             try
             {
-                WebRequest webreq = WebRequest.Create(uri);
-                ((HttpWebRequest)webreq).UserAgent = "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0";
-                ((HttpWebRequest)webreq).CookieContainer = new System.Net.CookieContainer();
-                ((HttpWebRequest)webreq).Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
-                ((HttpWebRequest)webreq).Headers.Add(HttpRequestHeader.AcceptLanguage, "*");
-                webreq.Timeout = 10000; // don't think it's expecting too much for a few KB to be delivered inside 10 seconds.
+				IOConnectionInfo ioc = IOConnectionInfo.FromPath(uri.AbsoluteUri);
+				s = IOConnection.OpenRead(ioc);
 
-                WebResponse response = webreq.GetResponse();
-                
-                if( response==null )
+                if( s==null )
                 {
                     message += "Could not download favicon(s). This may be a temporary problem so you may want to try again later or post the contents of this error message on the KeePass Favicon Download forums at http://sourceforge.net/projects/keepass-favicon/support. Technical information which may help diagnose the problem is listed below, you can copy it to your clipboard by just clicking on this message and pressing CTRL-C.\n - No response from server";
                     return false;
                 }
-                if( uri != response.ResponseUri )
-                {
-                    //Redirect ?
-                    return getFavicon(response.ResponseUri, ref ms, ref message);
-                }
 
-                s = response.GetResponseStream();
-
-                int count = 0;
-                byte[] buffer = new byte[4097];
-                do
-                {
-                    count = s.Read(buffer, 0, buffer.Length);        
-                    memStream.Write(buffer, 0, count);    
-                    if (count == 0)
-                        break;
-                }    
-                while (true);
-                memStream.Position = 0;
+				MemUtil.CopyStream(s, memStream);
                 
                 // END change
 
