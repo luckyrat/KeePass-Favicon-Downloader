@@ -217,9 +217,12 @@ namespace KeePassFaviconDownloader
                     MessageBox.Show(errorCount + " errors occurred. The last error message is shown here. To see the other messages, select a smaller group of entries and use the right click menu to start the download.\n" + errorMessage, "Download errors");
             }
 
-            m_host.MainWindow.UpdateUI(false, null, false, null,
-                true, null, true);
-            m_host.MainWindow.UpdateTrayIcon();
+            // Mark as modified only if there was any change
+            if (m_host.Database.UINeedsIconUpdate)
+            {
+                m_host.MainWindow.UpdateUI(false, null, false, null, true, null, true);
+                m_host.MainWindow.UpdateTrayIcon();
+            }
         }
 
         /// <summary>
@@ -290,16 +293,18 @@ namespace KeePassFaviconDownloader
                 // both 32 bit and 64 bit machines - not sure why...)
                 if (KeePassLib.Utility.MemUtil.ArraysEqual(msByteArray, item.ImageDataPng))
                 {
-                    pwe.CustomIconUuid = item.Uuid;
-                    pwe.Touch(true);
-                    m_host.Database.UINeedsIconUpdate = true;
+                    if (!pwe.CustomIconUuid.Equals(item.Uuid))
+                    {
+                        pwe.CustomIconUuid = item.Uuid;
+                        pwe.Touch(true);
+                        m_host.Database.UINeedsIconUpdate = true;
+                    }
                     return;
                 }
             }
 
             // Create a new custom icon for use with this entry
-            PwCustomIcon pwci = new PwCustomIcon(new PwUuid(true), 
-                ms.ToArray());
+            PwCustomIcon pwci = new PwCustomIcon(new PwUuid(true), ms.ToArray());
             m_host.Database.CustomIcons.Add(pwci);
             pwe.CustomIconUuid = pwci.Uuid;
             pwe.Touch(true);
