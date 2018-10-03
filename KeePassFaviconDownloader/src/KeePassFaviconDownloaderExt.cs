@@ -348,6 +348,7 @@ namespace KeePassFaviconDownloader
             {
                 // Open
                 IOConnectionInfo ioc = IOConnectionInfo.FromPath(fullURI.AbsoluteUri);
+                ioc.Properties.SetLong(IocKnownProperties.Timeout, 5000); // milliseconds
                 stream = IOConnection.OpenRead(ioc);
                 if (stream == null || stream.Length == 0)
                 {
@@ -441,6 +442,7 @@ namespace KeePassFaviconDownloader
                 MemoryStream memoryStream = new MemoryStream();
 
                 IOConnectionInfo ioc = IOConnectionInfo.FromPath(uri.AbsoluteUri);
+                ioc.Properties.SetLong(IocKnownProperties.Timeout, 5000); // milliseconds
                 stream = IOConnection.OpenRead(ioc);
 
                 if (stream == null || stream.Length == 0)
