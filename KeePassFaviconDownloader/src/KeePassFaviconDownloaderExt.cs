@@ -194,7 +194,7 @@ namespace KeePassFaviconDownloader
                 downloadOneFavicon(pwe, ref message);
                 if (message != "")
                 {
-                    errorMessage = "For an entry with URL '"+pwe.Strings.ReadSafe("URL")+"': " + message;
+                    errorMessage = "For an entry with URL '"+pwe.Strings.ReadSafe("URL")+"':\n" + message;
                     errorCount++;
                 }
 
@@ -266,11 +266,13 @@ namespace KeePassFaviconDownloader
             MemoryStream ms = null;
             Uri lastURI = getFromFaviconExplicitLocation(fullURI, ref ms, ref message) ?? fullURI;
             bool success = lastURI.OriginalString.Equals("http://success");
+            // TODO no reason to continue for WebException.Status: NameResolutionFailure, TrustFailure (SSL), ...
 
             // Swap scheme
             if (!success)
             {
                 message += "\n";
+
                 UriBuilder uriBuilder = new UriBuilder(lastURI);
                 if (uriBuilder.Scheme.Equals("http"))
                 {
@@ -290,14 +292,13 @@ namespace KeePassFaviconDownloader
             if (!success)
             {
                 message += "\n";
+
                 UriBuilder uriBuilder = new UriBuilder(fullURI.Scheme, fullURI.Host, fullURI.Port, "favicon.ico");
                 success = getFavicon(uriBuilder.Uri, ref ms, ref message);
             }
 
             if (!success)
             {
-                message += "\n";
-                message += "No favicon found.";
                 return;
             }
 
@@ -341,31 +342,47 @@ namespace KeePassFaviconDownloader
         private Uri getFromFaviconExplicitLocation(Uri fullURI, ref MemoryStream ms, ref string message)
         {
             // Download website
+            Stream stream = null;
             string html = "";
             try
             {
-                // TODO support redirection, authentication, cookies
+                // Open
                 IOConnectionInfo ioc = IOConnectionInfo.FromPath(fullURI.AbsoluteUri);
-                ioc.Properties.Set(IocKnownProperties.UserAgent, "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0");
-                byte[] pbData = IOConnection.ReadFile(ioc);
-                if (pbData == null || pbData.Length == 0)
+                stream = IOConnection.OpenRead(ioc);
+                if (stream == null || stream.Length == 0)
                 {
-                    message += "Received empty website."+fullURI.AbsoluteUri;
+                    message += "Could not download website: No or empty response.";
                     return null;
                 }
-                // TODO return URI after redirects
-                html = System.Text.Encoding.Default.GetString(pbData); // TODO read encoding: HtmlAgilityPack.DetectEncoding()
+
+                // Read
+                StreamReader streamReader = new StreamReader(stream);
+                html = streamReader.ReadToEnd();
+                if (String.IsNullOrEmpty(html))
+                {
+                    message += "Could not download website: Empty response.";
+                    return null;
+                }
             }
             catch (WebException webException)
             {
-                message += "Could not download website.\n" + webException.Status + ": " + webException.Message + ": " + webException.Response;
-                //int statusCode = ((HttpWebResponse)webException.Response).StatusCode;
+                // WebExceptionStatus: https://docs.microsoft.com/en-us/dotnet/api/system.net.webexceptionstatus?view=netframework-2.0
+                //   WebExceptionStatus status = webException.Status;
+                // for status == WebExceptionStatus.ProtocolError
+                //   ((HttpWebResponse)webException.Response).StatusDescription;
+                //   ((HttpWebResponse)webException.Response).StatusCode;
+                message += "Could not download website: " + webException.Message;
                 return null;
             }
-            catch (Exception ex) // TODO more precise exceptions: HTTP status codes, ...
+            catch (Exception ex)
             {
-                message += "Could not download website.\n" + ex.Message;
+                message += "Could not download website: " + ex.Message;
                 return null;
+            }
+            finally
+            {
+                if (stream != null)
+                    stream.Close();
             }
 
             // Parse HTML
@@ -402,7 +419,7 @@ namespace KeePassFaviconDownloader
             }
             catch (Exception ex)
             {
-                message += "Could not parse website.\n" + ex.Message;
+                message += "Could not parse website: " + ex.Message;
                 return null;
             }
         }
@@ -425,11 +442,10 @@ namespace KeePassFaviconDownloader
 
                 IOConnectionInfo ioc = IOConnectionInfo.FromPath(uri.AbsoluteUri);
                 stream = IOConnection.OpenRead(ioc);
-                // TODO parse header: content-type
 
-                if (stream == null)
+                if (stream == null || stream.Length == 0)
                 {
-                    message += "Could not download favicon (no response from server) from " + uri.AbsoluteUri;
+                    message += "Could not download favicon from " + uri.AbsoluteUri + ":\nNo or empty response.";
                     return false;
                 }
 
@@ -450,7 +466,7 @@ namespace KeePassFaviconDownloader
                     }
                     catch (Exception ex)
                     {
-                        throw new Exception("Invalid image format", ex);
+                        throw new Exception("Invalid image format: " + ex.Message);
                     }
                 }
                 finally
@@ -464,14 +480,17 @@ namespace KeePassFaviconDownloader
             }
             catch (WebException webException)
             {
-                // don't show this everytime a website has a missing favicon - it could get old fast.
-                message += "Could not download favicon from " + uri.AbsoluteUri + ". \n" + webException.Status + ": " + webException.Message + ": " + webException.Response;
+                // WebExceptionStatus: https://docs.microsoft.com/en-us/dotnet/api/system.net.webexceptionstatus?view=netframework-2.0
+                //   WebExceptionStatus status = webException.Status;
+                // for status == WebExceptionStatus.ProtocolError
+                //   ((HttpWebResponse)webException.Response).StatusDescription;
+                //   ((HttpWebResponse)webException.Response).StatusCode;
+                message += "Could not download favicon from " + uri.AbsoluteUri + ":\n" + webException.Message;
                 return false;
             }
-            catch (Exception generalException)
+            catch (Exception ex)
             {
-                // don't show this everytime a website has an invalid favicon - it could get old fast.
-                message += "Could not process downloaded favicon from " + uri.AbsoluteUri + ".\n" + generalException.Message + ".";
+                message += "Could not process downloaded favicon from " + uri.AbsoluteUri + ":\n" + ex.Message + ".";
                 return false;
             }
 
@@ -493,7 +512,7 @@ namespace KeePassFaviconDownloader
             }
             catch (Exception ex)
             {
-                message += "Could not resize downloaded favicon from " + uri.AbsoluteUri + ".\n" + ex.Message + ".";
+                message += "Could not resize downloaded favicon from " + uri.AbsoluteUri + ":\n" + ex.Message + ".";
                 return false;
             }
         }
