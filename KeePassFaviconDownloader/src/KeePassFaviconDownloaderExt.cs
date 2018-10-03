@@ -17,7 +17,7 @@
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- 
+
   Uses HtmlAgilityPack under MS-PL license: http://htmlagilitypack.codeplex.com/
 */
 
@@ -45,10 +45,10 @@ using System.Text.RegularExpressions;
 
 namespace KeePassFaviconDownloader
 {
-	public sealed class KeePassFaviconDownloaderExt : Plugin
-	{
-		// The plugin remembers its host in this variable.
-		private IPluginHost m_host = null;
+    public sealed class KeePassFaviconDownloaderExt : Plugin
+    {
+        // The plugin remembers its host in this variable.
+        private IPluginHost m_host = null;
 
         public override string UpdateUrl
         {
@@ -67,16 +67,16 @@ namespace KeePassFaviconDownloader
         /// </summary>
         /// <param name="host">The plugin host.</param>
         /// <returns></returns>
-		public override bool Initialize(IPluginHost host)
-		{
-			Debug.Assert(host != null);
-			if(host == null) return false;
-			m_host = host;
+        public override bool Initialize(IPluginHost host)
+        {
+            Debug.Assert(host != null);
+            if(host == null) return false;
+            m_host = host;
 
-			// Add a seperator and menu item to the 'Tools' menu
-			ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
-			m_tsSeparator1 = new ToolStripSeparator();
-			tsMenu.Add(m_tsSeparator1);
+            // Add a seperator and menu item to the 'Tools' menu
+            ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
+            m_tsSeparator1 = new ToolStripSeparator();
+            tsMenu.Add(m_tsSeparator1);
             menuDownloadFavicons = new ToolStripMenuItem();
             menuDownloadFavicons.Text = "Download Favicons for all entries";
             menuDownloadFavicons.Click += OnMenuDownloadFavicons;
@@ -100,17 +100,17 @@ namespace KeePassFaviconDownloader
             menuDownloadEntryFavicons.Click += OnMenuDownloadEntryFavicons;
             ecm.Items.Add(menuDownloadEntryFavicons);
 
-			return true; // Initialization successful
-		}
+            return true; // Initialization successful
+        }
 
         /// <summary>
         /// Terminates this instance.
         /// </summary>
-		public override void Terminate()
-		{
-			// Remove 'Tools' menu items
-			ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
-			tsMenu.Remove(m_tsSeparator1);
+        public override void Terminate()
+        {
+            // Remove 'Tools' menu items
+            ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
+            tsMenu.Remove(m_tsSeparator1);
             tsMenu.Remove(menuDownloadFavicons);
 
             // Remove group context menu items
@@ -122,8 +122,7 @@ namespace KeePassFaviconDownloader
             ContextMenuStrip ecm = m_host.MainWindow.EntryContextMenu;
             ecm.Items.Remove(m_tsSeparator3);
             ecm.Items.Remove(menuDownloadEntryFavicons);
-
-		}
+        }
 
         /// <summary>
         /// Downloads favicons for every entry in the database
@@ -131,17 +130,17 @@ namespace KeePassFaviconDownloader
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void OnMenuDownloadFavicons(object sender, EventArgs e)
-		{
-			if(!m_host.Database.IsOpen)
-			{
-				MessageBox.Show("Please open a database first.", "Favicon downloader");
-				return;
-			}
+        {
+            if(!m_host.Database.IsOpen)
+            {
+                MessageBox.Show("Please open a database first.", "Favicon downloader");
+                return;
+            }
 
             KeePassLib.Collections.PwObjectList<PwEntry> output;
             output = m_host.Database.RootGroup.GetEntries(true);
-            downloadSomeFavicons(output);  
-		}
+            downloadSomeFavicons(output);
+        }
 
         /// <summary>
         /// Downloads favicons for every entry in the selected groups
@@ -152,7 +151,7 @@ namespace KeePassFaviconDownloader
         {
             PwGroup pg = m_host.MainWindow.GetSelectedGroup();
             Debug.Assert(pg != null); if (pg == null) return;
-            downloadSomeFavicons(pg.Entries);  
+            downloadSomeFavicons(pg.Entries);
         }
 
         /// <summary>
@@ -162,10 +161,10 @@ namespace KeePassFaviconDownloader
         /// <param name="e"></param>
         private void OnMenuDownloadEntryFavicons(object sender, EventArgs e)
         {
-            
+
             PwEntry[] pwes = m_host.MainWindow.GetSelectedEntries();
             Debug.Assert(pwes != null); if (pwes == null || pwes.Length == 0) return;
-            downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry>.FromArray(pwes));            
+            downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry>.FromArray(pwes));
         }
 
         /// <summary>
@@ -217,7 +216,7 @@ namespace KeePassFaviconDownloader
                 else
                     MessageBox.Show(errorCount + " errors occurred. The last error message is shown here. To see the other messages, select a smaller group of entries and use the right click menu to start the download.\n" + errorMessage, "Download errors");
             }
-            
+
             m_host.MainWindow.UpdateUI(false, null, false, null,
                 true, null, true);
             m_host.MainWindow.UpdateTrayIcon();
@@ -235,7 +234,7 @@ namespace KeePassFaviconDownloader
 
             if (string.IsNullOrEmpty(url))
                 url = pwe.Strings.ReadSafe("Title");
-            
+
             // If we still have no URL, quit
             if (string.IsNullOrEmpty(url))
                 return;
@@ -278,7 +277,7 @@ namespace KeePassFaviconDownloader
                 foreach (PwCustomIcon item in m_host.Database.CustomIcons)
                 {
                     // re-use existing custom icon if it's already in the database
-                    // (This will probably fail if database is used on 
+                    // (This will probably fail if database is used on
                     // both 32 bit and 64 bit machines - not sure why...)
                     if (KeePassLib.Utility.MemUtil.ArraysEqual(msByteArray, item.ImageDataPng))
                     {
@@ -297,9 +296,8 @@ namespace KeePassFaviconDownloader
                 pwe.Touch(true);
                 m_host.Database.UINeedsIconUpdate = true;
             }
-
         }
-      
+
         /// <summary>
         /// Gets a memory stream representing an image from an explicit favicon location.
         /// </summary>
@@ -308,19 +306,19 @@ namespace KeePassFaviconDownloader
         /// <param name="message">Any error message is sent back through this string.</param>
         /// <returns></returns>
         private Uri getFromFaviconExplicitLocation(Uri fullURI, ref MemoryStream ms, ref string message)
-		{
-			try
-			{
-				// TODO support redirection, authentication, cookies
-				IOConnectionInfo ioc = IOConnectionInfo.FromPath(fullURI.AbsoluteUri);
-				ioc.Properties.Set(IocKnownProperties.UserAgent, "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0");
-				byte[] pbData = IOConnection.ReadFile(ioc);
-				var pbString = System.Text.Encoding.Default.GetString(pbData);
-				HtmlAgilityPack.HtmlDocument hdoc = new HtmlAgilityPack.HtmlDocument();
-				hdoc.LoadHtml(pbString);
+        {
+            try
+            {
+                // TODO support redirection, authentication, cookies
+                IOConnectionInfo ioc = IOConnectionInfo.FromPath(fullURI.AbsoluteUri);
+                ioc.Properties.Set(IocKnownProperties.UserAgent, "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0");
+                byte[] pbData = IOConnection.ReadFile(ioc);
+                var pbString = System.Text.Encoding.Default.GetString(pbData);
+                HtmlAgilityPack.HtmlDocument hdoc = new HtmlAgilityPack.HtmlDocument();
+                hdoc.LoadHtml(pbString);
 
                 if (hdoc == null)
-    				return fullURI;
+                    return fullURI;
 
                 string faviconLocation = "";
                 try
@@ -356,16 +354,16 @@ namespace KeePassFaviconDownloader
                 }
                 if (String.IsNullOrEmpty(faviconLocation))
                 {
-    				return fullURI;
-    			}
+                    return fullURI;
+                }
 
-				return (getFavicon(new Uri(fullURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):fullURI;
+                return (getFavicon(new Uri(fullURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):fullURI;
             }
             catch (Exception)
             {
             }
 
-			return fullURI;         
+            return fullURI;
         }
 
         /// <summary>
@@ -383,8 +381,8 @@ namespace KeePassFaviconDownloader
 
             try
             {
-				IOConnectionInfo ioc = IOConnectionInfo.FromPath(uri.AbsoluteUri);
-				s = IOConnection.OpenRead(ioc);
+                IOConnectionInfo ioc = IOConnectionInfo.FromPath(uri.AbsoluteUri);
+                s = IOConnection.OpenRead(ioc);
 
                 if( s==null )
                 {
@@ -392,8 +390,8 @@ namespace KeePassFaviconDownloader
                     return false;
                 }
 
-				MemUtil.CopyStream(s, memStream);
-                
+                MemUtil.CopyStream(s, memStream);
+
                 // END change
 
                 try
@@ -405,7 +403,7 @@ namespace KeePassFaviconDownloader
                 catch (Exception)
                 {
                     // This shouldn't be useful unless someone has messed up their favicon format
-                    try { img = Image.FromStream(memStream); } 
+                    try { img = Image.FromStream(memStream); }
                     catch (Exception) { throw; }
                 }
 
@@ -451,6 +449,5 @@ namespace KeePassFaviconDownloader
                 return false;
             }
         }
-
-	}
+    }
 }
