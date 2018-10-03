@@ -230,8 +230,10 @@ namespace KeePassFaviconDownloader
         {
             // TODO: create async jobs instead?
 
+            // Read URL
             string url = pwe.Strings.ReadSafe("URL");
 
+            // Use title of no URL is given
             if (string.IsNullOrEmpty(url))
                 url = pwe.Strings.ReadSafe("Title");
 
@@ -239,63 +241,69 @@ namespace KeePassFaviconDownloader
             if (string.IsNullOrEmpty(url))
                 return;
 
-            // If we have a URL with specific scheme that is not http or https, quit
-            if (!url.StartsWith("http://") && !url.StartsWith("https://")
-                && url.Contains("://"))
-                return;
-
-            int dotIndex = url.IndexOf(".");
-            if (dotIndex >= 0)
+            // If we have a URL with specific protocol that is not http or https, quit
+            if (!url.StartsWith("http://", StringComparison.CurrentCulture) && !url.StartsWith("https://", StringComparison.CurrentCulture))
             {
-                Uri fullURI = null;
-                try {
-                    fullURI = new Uri((url.StartsWith("http://")||url.StartsWith("https://"))?url:"http://"+url,UriKind.Absolute);
-                }
-                catch (Exception ex)
-                {
-                    message += url + "\n" + ex.Message;
+                if (url.Contains("://")) { // NOTE URI standard only requires ":", but it should be differentiated to port separator "domain:port"
+                    message += "Invalid URL (unsupported protocol): " + url;
                     return;
+                } else {
+                    url = "http://" + url;
                 }
-
-                MemoryStream ms = null;
-                Uri lastURI = getFromFaviconExplicitLocation(fullURI, ref ms, ref message);
-                bool success = (lastURI != null) && lastURI.OriginalString.Equals("http://success");
-
-                if (!success)
-                {
-                    success = getFavicon(new Uri((lastURI==null)?fullURI:lastURI,"/favicon.ico"), ref ms, ref message);
-                }
-
-                if (!success)
-                    return;
-
-                // If we found an icon then we don't care whether one particular download method failed.
-                message = "";
-
-                byte[] msByteArray = ms.ToArray();
-
-                foreach (PwCustomIcon item in m_host.Database.CustomIcons)
-                {
-                    // re-use existing custom icon if it's already in the database
-                    // (This will probably fail if database is used on
-                    // both 32 bit and 64 bit machines - not sure why...)
-                    if (KeePassLib.Utility.MemUtil.ArraysEqual(msByteArray, item.ImageDataPng))
-                    {
-                        pwe.CustomIconUuid = item.Uuid;
-                        pwe.Touch(true);
-                        m_host.Database.UINeedsIconUpdate = true;
-                        return;
-                    }
-                }
-
-                // Create a new custom icon for use with this entry
-                PwCustomIcon pwci = new PwCustomIcon(new PwUuid(true),
-                    ms.ToArray());
-                m_host.Database.CustomIcons.Add(pwci);
-                pwe.CustomIconUuid = pwci.Uuid;
-                pwe.Touch(true);
-                m_host.Database.UINeedsIconUpdate = true;
             }
+
+            // Try to create an URI
+            Uri fullURI = null;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out fullURI))
+            {
+                message += "Invalid URI: " + url;
+                return;
+            }
+
+            MemoryStream ms = null;
+            Uri lastURI = getFromFaviconExplicitLocation(fullURI, ref ms, ref message);
+            bool success = (lastURI != null) && lastURI.OriginalString.Equals("http://success");
+
+            if (!success)
+            {
+                if (lastURI == null)
+                    lastURI = fullURI;
+                UriBuilder uriBuilder = new UriBuilder(fullURI.Scheme, fullURI.Host, fullURI.Port, "favicon.ico");
+                success = getFavicon(uriBuilder.Uri, ref ms, ref message);
+            }
+
+            if (!success)
+            {
+                message += "No favicon found.";
+                return;
+            }
+
+            // If we found an icon then we don't care whether one particular download method failed.
+            message = "";
+
+            byte[] msByteArray = ms.ToArray();
+
+            foreach (PwCustomIcon item in m_host.Database.CustomIcons)
+            {
+                // re-use existing custom icon if it's already in the database
+                // (This will probably fail if database is used on
+                // both 32 bit and 64 bit machines - not sure why...)
+                if (KeePassLib.Utility.MemUtil.ArraysEqual(msByteArray, item.ImageDataPng))
+                {
+                    pwe.CustomIconUuid = item.Uuid;
+                    pwe.Touch(true);
+                    m_host.Database.UINeedsIconUpdate = true;
+                    return;
+                }
+            }
+
+            // Create a new custom icon for use with this entry
+            PwCustomIcon pwci = new PwCustomIcon(new PwUuid(true), 
+                ms.ToArray());
+            m_host.Database.CustomIcons.Add(pwci);
+            pwe.CustomIconUuid = pwci.Uuid;
+            pwe.Touch(true);
+            m_host.Database.UINeedsIconUpdate = true;
         }
 
         /// <summary>
@@ -304,66 +312,74 @@ namespace KeePassFaviconDownloader
         /// <param name="fullURI">The URI.</param>
         /// <param name="ms">The memory stream (output).</param>
         /// <param name="message">Any error message is sent back through this string.</param>
-        /// <returns></returns>
+        /// <returns>URI after redirect or null on error.</returns>
         private Uri getFromFaviconExplicitLocation(Uri fullURI, ref MemoryStream ms, ref string message)
         {
+            // Download website
+            string html = "";
             try
             {
                 // TODO support redirection, authentication, cookies
                 IOConnectionInfo ioc = IOConnectionInfo.FromPath(fullURI.AbsoluteUri);
                 ioc.Properties.Set(IocKnownProperties.UserAgent, "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0");
                 byte[] pbData = IOConnection.ReadFile(ioc);
-                var pbString = System.Text.Encoding.Default.GetString(pbData);
-                HtmlAgilityPack.HtmlDocument hdoc = new HtmlAgilityPack.HtmlDocument();
-                hdoc.LoadHtml(pbString);
+                // TODO return URI after redirects
+                html = System.Text.Encoding.Default.GetString(pbData); // TODO read encoding: HtmlAgilityPack.DetectEncoding()
+            }
+            catch (Exception ex) // TODO more precise exceptions: HTTP status codes, ...
+            {
+                message += "Could not download website.\n" + ex.Message;
+                return null;
+            }
+            if (html == "")
+            {
+                message += "Received empty website.";
+                return null;
+            }
 
+            // Parse HTML
+            HtmlAgilityPack.HtmlDocument hdoc = null;
+            try
+            {
+                hdoc = new HtmlAgilityPack.HtmlDocument();
+                hdoc.LoadHtml(html);
                 if (hdoc == null)
-                    return fullURI;
+                {
+                    message += "Could not read website.";
+                    return null;
+                }
 
                 string faviconLocation = "";
-                try
+                HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
+                foreach (HtmlNode node in links)
                 {
-                    HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
-                    for (int i = 0; i < links.Count; i++)
+                    HtmlAttribute rel = node.Attributes["rel"];
+                    if (rel == null)
+                        continue;
+                    string val = rel.Value.ToLower().Replace("shortcut","").Trim();
+                    if (val == "icon")
                     {
-                        HtmlNode node = links[i];
-                        try
-                        {
-                            HtmlAttribute r = node.Attributes["rel"];
-                            string val = r.Value.ToLower().Replace("shortcut","").Trim();
-                            if (val == "icon")
-                            {
-                                try
-                                {
-                                    faviconLocation = node.Attributes["href"].Value;
-                                    // Don't break the loop, because there could be many <link rel="icon"> nodes
-                                    // We should read the last one, like web browsers do
-                                }
-                                catch (Exception)
-                                {
-                                }
-                            }
-                        }
-                        catch (Exception)
-                        {
-                        }
+                        HtmlAttribute href = node.Attributes["href"];
+                        if (href == null)
+                            continue;
+                        faviconLocation = href.Value;
+                        // Don't break the loop, because there could be many <link rel="icon"> nodes
+                        // We should read the last one, like web browsers do
                     }
-                }
-                catch (Exception)
-                {
                 }
                 if (String.IsNullOrEmpty(faviconLocation))
                 {
-                    return fullURI;
+                    message += "Could not find favicon link within website.";
+                    return null;
                 }
 
-                return (getFavicon(new Uri(fullURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):fullURI;
+                return (getFavicon(new Uri(fullURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):null;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                message += "Could not parse website.\n" + ex.Message;
+                return null;
             }
-
-            return fullURI;
         }
 
         /// <summary>
@@ -372,56 +388,65 @@ namespace KeePassFaviconDownloader
         /// <param name="uri">The URI.</param>
         /// <param name="ms">The memory stream (output).</param>
         /// <param name="message">Any error message is sent back through this string.</param>
-        /// <returns></returns>
+        /// <returns>True when successful.</returns>
         private bool getFavicon(Uri uri, ref MemoryStream ms, ref string message)
         {
-            Stream s = null;
             Image img = null;
-            MemoryStream memStream = new MemoryStream();
 
             try
             {
-                IOConnectionInfo ioc = IOConnectionInfo.FromPath(uri.AbsoluteUri);
-                s = IOConnection.OpenRead(ioc);
+                Stream stream = null;
+                MemoryStream memoryStream = new MemoryStream();
 
-                if( s==null )
+                IOConnectionInfo ioc = IOConnectionInfo.FromPath(uri.AbsoluteUri);
+                stream = IOConnection.OpenRead(ioc);
+                // TODO parse header: content-type
+
+                if (stream == null)
                 {
-                    message += "Could not download favicon(s). This may be a temporary problem so you may want to try again later or post the contents of this error message on the KeePass Favicon Download forums at http://sourceforge.net/projects/keepass-favicon/support. Technical information which may help diagnose the problem is listed below, you can copy it to your clipboard by just clicking on this message and pressing CTRL-C.\n - No response from server";
+                    message += "Could not download favicon (no response from server) from " + uri.AbsoluteUri;
                     return false;
                 }
 
-                MemUtil.CopyStream(s, memStream);
-
-                // END change
+                MemUtil.CopyStream(stream, memoryStream);
 
                 try
                 {
-                    Icon icon = new Icon(memStream);
+                    Icon icon = new Icon(memoryStream);
                     icon = new Icon(icon, 16, 16);
                     img = icon.ToBitmap();
                 }
                 catch (Exception)
                 {
                     // This shouldn't be useful unless someone has messed up their favicon format
-                    try { img = Image.FromStream(memStream); }
-                    catch (Exception) { throw; }
+                    try
+                    {
+                        img = Image.FromStream(memoryStream);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception("Invalid image format", ex);
+                    }
+                }
+                finally
+                {
+                    if (memoryStream != null)
+                        memoryStream.Close();
+                    if (stream != null)
+                        stream.Close();
                 }
 
             }
             catch (WebException webException)
             {
                 // don't show this everytime a website has a missing favicon - it could get old fast.
-                message += "Could not download favicon(s). This may be a temporary problem so you may want to try again later or post the contents of this error message on the KeePass Favicon Download forums at http://sourceforge.net/projects/keepass-favicon/support. Technical information which may help diagnose the problem is listed below, you can copy it to your clipboard by just clicking on this message and pressing CTRL-C.\n" + webException.Status + ": " + webException.Message + ": " + webException.Response;
-                if (s != null)
-                    s.Close();
+                message += "Could not download favicon from " + uri.AbsoluteUri + ". \n" + webException.Status + ": " + webException.Message + ": " + webException.Response;
                 return false;
             }
             catch (Exception generalException)
             {
                 // don't show this everytime a website has an invalid favicon - it could get old fast.
-                message += "Could not download favicon(s). This may be a temporary problem so you may want to try again later or post the contents of this error message on the KeePass Favicon Download forums at http://sourceforge.net/projects/keepass-favicon/support. Technical information which may help diagnose the problem is listed below, you can copy it to your clipboard by just clicking on this message and pressing CTRL-C.\n" + generalException.Message + ".";
-                if (s != null)
-                    s.Close();
+                message += "Could not process downloaded favicon from " + uri.AbsoluteUri + ".\n" + generalException.Message + ".";
                 return false;
             }
 
@@ -443,9 +468,7 @@ namespace KeePassFaviconDownloader
             }
             catch (Exception ex)
             {
-                message += "Could not process downloaded favicon. This may be a temporary problem so you may want to try again later or post the contents of this error message on the KeePass Favicon Download forums at http://sourceforge.net/projects/keepass-favicon/support. Technical information which may help diagnose the problem is listed below, you can copy it to your clipboard by just clicking on this message and pressing CTRL-C.\n" + ex.Message + ".";
-                if (s != null)
-                    s.Close();
+                message += "Could not resize downloaded favicon from " + uri.AbsoluteUri + ".\n" + ex.Message + ".";
                 return false;
             }
         }
