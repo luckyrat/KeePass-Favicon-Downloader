@@ -1,15 +1,16 @@
 Source: keepass2-plugin-favicondownloader
 Section: libs
-Priority: extra
+Priority: optional
 Maintainer: Marcel Schnirring <ms@marcel-schnirring.de>
-Build-Depends: debhelper (>=9)
-Standards-Version: 3.9.6
+Build-Depends: debhelper (>=9), keepass2, make, mono-devel, nuget
+Standards-Version: 4.1.4
 Homepage: https://github.com/darkdragon-001/KeePass-Favicon-Downloader
 
 Package: keepass2-plugin-favicondownloader
 Section: libs
-Architecture: any
-Multi-Arch: same
+Architecture: all
 Pre-Depends: ${misc:Pre-Depends}
 Depends: keepass2, mono-complete, ${misc:Depends}
 Description: Keepass plugin to download favicons.
+ This plugin lets you download favicons for all your passwords saved in
+ Keepass.

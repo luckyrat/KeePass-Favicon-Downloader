@@ -21,9 +21,7 @@ $(NUDIR)/HtmlAgilityPack.1.8.9/lib/Net20/HtmlAgilityPack.dll:
 	nuget install -o $(NUDIR) ./KeePassFaviconDownloader/packages.config
 
 install: $(PLGXDIR)/KeePassFaviconDownloader.plgx
-	\mkdir -p "$(DESTDIR)$(KPPDir)"
-	install -D "$(PLGXDIR)/KeePassFaviconDownloader.plgx" \
-		"$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.plgx"
+	install -D -m 644 "$(PLGXDIR)/KeePassFaviconDownloader.plgx" "$(DESTDIR)$(KPPDir)/KeePassFaviconDownloader.plgx"
 
 clean:
 	\rm -rf "$(NUDIR)" "KeePassFaviconDownloader/lib/HtmlAgilityPack.dll" "$(PLGXDIR)"

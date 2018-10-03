@@ -1,3 +1,14 @@
+keepass2-plugin-favicondownloader (1.9.2) unstable; urgency=medium
+
+  * Use Keepass API to download resources
+    - Respect proxy settings
+    - Respect SSL settings
+  * Only mark database as changed when there have been actual changes
+  * Improved error handling and messages
+  * Minor fixes
+
+ -- Dark Dragon <darkdragon-001@web.de>  Wed, 03 Oct 2018 19:57:31 +0200
+
 keepass2-plugin-favicondownloader (1.9.1) unstable; urgency=low
 
   * Linux Release:
@@ -6,7 +17,7 @@ keepass2-plugin-favicondownloader (1.9.1) unstable; urgency=low
     - Added Debian packaging
     - Minor fixes
 
- -- Marcel Schnirring <ms@marcel-schnirring.de>  Sat, 10 Jun 2017 00:37:02 +0200
+ -- Dark Dragon <darkdragon-001@web.de>  Sat, 10 Jun 2017 00:37:02 +0200
 
 keepass2-plugin-favicondownloader (1.9.0) unstable; urgency=low
 
