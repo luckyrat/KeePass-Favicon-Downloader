@@ -264,19 +264,39 @@ namespace KeePassFaviconDownloader
             }
 
             MemoryStream ms = null;
-            Uri lastURI = getFromFaviconExplicitLocation(fullURI, ref ms, ref message);
-            bool success = (lastURI != null) && lastURI.OriginalString.Equals("http://success");
+            Uri lastURI = getFromFaviconExplicitLocation(fullURI, ref ms, ref message) ?? fullURI;
+            bool success = lastURI.OriginalString.Equals("http://success");
 
+            // Swap scheme
             if (!success)
             {
-                if (lastURI == null)
-                    lastURI = fullURI;
+                message += "\n";
+                UriBuilder uriBuilder = new UriBuilder(lastURI);
+                if (uriBuilder.Scheme.Equals("http"))
+                {
+                    uriBuilder.Scheme = "https";
+                    uriBuilder.Port = 443;
+                }
+                else
+                {
+                    uriBuilder.Scheme = "http";
+                    uriBuilder.Port = 80;
+                }
+                lastURI = getFromFaviconExplicitLocation(uriBuilder.Uri, ref ms, ref message) ?? fullURI;
+                success = lastURI.OriginalString.Equals("http://success");
+            }
+
+            // Guess location
+            if (!success)
+            {
+                message += "\n";
                 UriBuilder uriBuilder = new UriBuilder(fullURI.Scheme, fullURI.Host, fullURI.Port, "favicon.ico");
                 success = getFavicon(uriBuilder.Uri, ref ms, ref message);
             }
 
             if (!success)
             {
+                message += "\n";
                 message += "No favicon found.";
                 return;
             }
@@ -328,17 +348,23 @@ namespace KeePassFaviconDownloader
                 IOConnectionInfo ioc = IOConnectionInfo.FromPath(fullURI.AbsoluteUri);
                 ioc.Properties.Set(IocKnownProperties.UserAgent, "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0");
                 byte[] pbData = IOConnection.ReadFile(ioc);
+                if (pbData == null || pbData.Length == 0)
+                {
+                    message += "Received empty website."+fullURI.AbsoluteUri;
+                    return null;
+                }
                 // TODO return URI after redirects
                 html = System.Text.Encoding.Default.GetString(pbData); // TODO read encoding: HtmlAgilityPack.DetectEncoding()
+            }
+            catch (WebException webException)
+            {
+                message += "Could not download website.\n" + webException.Status + ": " + webException.Message + ": " + webException.Response;
+                //int statusCode = ((HttpWebResponse)webException.Response).StatusCode;
+                return null;
             }
             catch (Exception ex) // TODO more precise exceptions: HTTP status codes, ...
             {
                 message += "Could not download website.\n" + ex.Message;
-                return null;
-            }
-            if (html == "")
-            {
-                message += "Received empty website.";
                 return null;
             }
 
@@ -358,16 +384,10 @@ namespace KeePassFaviconDownloader
                 HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
                 foreach (HtmlNode node in links)
                 {
-                    HtmlAttribute rel = node.Attributes["rel"];
-                    if (rel == null)
-                        continue;
-                    string val = rel.Value.ToLower().Replace("shortcut","").Trim();
+                    string val = node.Attributes["rel"]?.Value.ToLower().Replace("shortcut","").Trim();
                     if (val == "icon")
                     {
-                        HtmlAttribute href = node.Attributes["href"];
-                        if (href == null)
-                            continue;
-                        faviconLocation = href.Value;
+                        faviconLocation = node.Attributes["href"]?.Value;
                         // Don't break the loop, because there could be many <link rel="icon"> nodes
                         // We should read the last one, like web browsers do
                     }
