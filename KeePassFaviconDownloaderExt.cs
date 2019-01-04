@@ -46,6 +46,7 @@ namespace KeePassFaviconDownloader
 	{
 		// The plugin remembers its host in this variable.
 		private IPluginHost m_host = null;
+		private static SecurityProtocolType originalSecurityProtocol = System.Net.ServicePointManager.SecurityProtocol;
 
         public override string UpdateUrl
         {
@@ -440,12 +441,21 @@ namespace KeePassFaviconDownloader
         /// <returns></returns>
         private bool getFavicon(Uri uri, ref MemoryStream ms, ref string message)
         {
+            return getFaviconWithSecurityProtocol(uri, ref ms, ref message, originalSecurityProtocol) || 
+                (originalSecurityProtocol != SecurityProtocolTypeExtensions.Tls12 && getFaviconWithSecurityProtocol(uri, ref ms, ref message, SecurityProtocolTypeExtensions.Tls12)) ||
+                (originalSecurityProtocol != SecurityProtocolTypeExtensions.Tls11 && getFaviconWithSecurityProtocol(uri, ref ms, ref message, SecurityProtocolTypeExtensions.Tls11));
+        }
+
+        private bool getFaviconWithSecurityProtocol(Uri uri, ref MemoryStream ms, ref string message, SecurityProtocolType securityProtocolType)
+        {
             Stream s = null;
             Image img = null;
             MemoryStream memStream = new MemoryStream();
 
             try
             {
+                ServicePointManager.SecurityProtocol = securityProtocolType;
+
                 WebRequest webreq = WebRequest.Create(uri);
                 ((HttpWebRequest)webreq).UserAgent = "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0";
                 ((HttpWebRequest)webreq).CookieContainer = new System.Net.CookieContainer();
