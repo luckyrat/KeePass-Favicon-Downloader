@@ -42,10 +42,11 @@ using System.Text.RegularExpressions;
 
 namespace KeePassFaviconDownloader
 {
-	public sealed class KeePassFaviconDownloaderExt : Plugin
-	{
-		// The plugin remembers its host in this variable.
-		private IPluginHost m_host = null;
+    public sealed class KeePassFaviconDownloaderExt : Plugin
+    {
+        // The plugin remembers its host in this variable.
+        private IPluginHost m_host = null;
+        private static SecurityProtocolType originalSecurityProtocol = System.Net.ServicePointManager.SecurityProtocol;
 
         public override string UpdateUrl
         {
@@ -65,15 +66,15 @@ namespace KeePassFaviconDownloader
         /// <param name="host">The plugin host.</param>
         /// <returns></returns>
 		public override bool Initialize(IPluginHost host)
-		{
-			Debug.Assert(host != null);
-			if(host == null) return false;
-			m_host = host;
+        {
+            Debug.Assert(host != null);
+            if (host == null) return false;
+            m_host = host;
 
-			// Add a seperator and menu item to the 'Tools' menu
-			ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
-			m_tsSeparator1 = new ToolStripSeparator();
-			tsMenu.Add(m_tsSeparator1);
+            // Add a seperator and menu item to the 'Tools' menu
+            ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
+            m_tsSeparator1 = new ToolStripSeparator();
+            tsMenu.Add(m_tsSeparator1);
             menuDownloadFavicons = new ToolStripMenuItem();
             menuDownloadFavicons.Text = "Download Favicons for all entries";
             menuDownloadFavicons.Click += OnMenuDownloadFavicons;
@@ -97,17 +98,17 @@ namespace KeePassFaviconDownloader
             menuDownloadEntryFavicons.Click += OnMenuDownloadEntryFavicons;
             ecm.Items.Add(menuDownloadEntryFavicons);
 
-			return true; // Initialization successful
-		}
+            return true; // Initialization successful
+        }
 
         /// <summary>
         /// Terminates this instance.
         /// </summary>
 		public override void Terminate()
-		{
-			// Remove 'Tools' menu items
-			ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
-			tsMenu.Remove(m_tsSeparator1);
+        {
+            // Remove 'Tools' menu items
+            ToolStripItemCollection tsMenu = m_host.MainWindow.ToolsMenu.DropDownItems;
+            tsMenu.Remove(m_tsSeparator1);
             tsMenu.Remove(menuDownloadFavicons);
 
             // Remove group context menu items
@@ -119,8 +120,7 @@ namespace KeePassFaviconDownloader
             ContextMenuStrip ecm = m_host.MainWindow.EntryContextMenu;
             ecm.Items.Remove(m_tsSeparator3);
             ecm.Items.Remove(menuDownloadEntryFavicons);
-
-		}
+        }
 
         /// <summary>
         /// Downloads favicons for every entry in the database
@@ -128,17 +128,17 @@ namespace KeePassFaviconDownloader
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void OnMenuDownloadFavicons(object sender, EventArgs e)
-		{
-			if(!m_host.Database.IsOpen)
-			{
-				MessageBox.Show("Please open a database first.", "Favicon downloader");
-				return;
-			}
+        {
+            if (!m_host.Database.IsOpen)
+            {
+                MessageBox.Show("Please open a database first.", "Favicon downloader");
+                return;
+            }
 
             KeePassLib.Collections.PwObjectList<PwEntry> output;
             output = m_host.Database.RootGroup.GetEntries(true);
-            downloadSomeFavicons(output);  
-		}
+            downloadSomeFavicons(output);
+        }
 
         /// <summary>
         /// Downloads favicons for every entry in the selected groups
@@ -149,7 +149,7 @@ namespace KeePassFaviconDownloader
         {
             PwGroup pg = m_host.MainWindow.GetSelectedGroup();
             Debug.Assert(pg != null); if (pg == null) return;
-            downloadSomeFavicons(pg.Entries);  
+            downloadSomeFavicons(pg.Entries);
         }
 
         /// <summary>
@@ -159,10 +159,9 @@ namespace KeePassFaviconDownloader
         /// <param name="e"></param>
         private void OnMenuDownloadEntryFavicons(object sender, EventArgs e)
         {
-            
             PwEntry[] pwes = m_host.MainWindow.GetSelectedEntries();
             Debug.Assert(pwes != null); if (pwes == null || pwes.Length == 0) return;
-            downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry>.FromArray(pwes));            
+            downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry>.FromArray(pwes));
         }
 
         /// <summary>
@@ -187,12 +186,12 @@ namespace KeePassFaviconDownloader
             {
                 string message = "";
 
-                progressForm.SetText("Title: " + pwe.Strings.ReadSafe("Title") + "; User Name: " + pwe.Strings.ReadSafe("UserName"),LogStatusType.Info);
+                progressForm.SetText("Title: " + pwe.Strings.ReadSafe("Title") + "; User Name: " + pwe.Strings.ReadSafe("UserName"), LogStatusType.Info);
 
                 downloadOneFavicon(pwe, ref message);
                 if (message != "")
                 {
-                    errorMessage = "For an entry with URL '"+pwe.Strings.ReadSafe("URL")+"': " + message;
+                    errorMessage = "For an entry with URL '" + pwe.Strings.ReadSafe("URL") + "': " + message;
                     errorCount++;
                 }
 
@@ -214,7 +213,7 @@ namespace KeePassFaviconDownloader
                 else
                     MessageBox.Show(errorCount + " errors occurred. The last error message is shown here. To see the other messages, select a smaller group of entries and use the right click menu to start the download.\n" + errorMessage, "Download errors");
             }
-            
+
             m_host.MainWindow.UpdateUI(false, null, false, null,
                 true, null, true);
             m_host.MainWindow.UpdateTrayIcon();
@@ -232,7 +231,7 @@ namespace KeePassFaviconDownloader
 
             if (string.IsNullOrEmpty(url))
                 url = pwe.Strings.ReadSafe("Title");
-            
+
             // If we still have no URL, quit
             if (string.IsNullOrEmpty(url))
                 return;
@@ -246,8 +245,9 @@ namespace KeePassFaviconDownloader
             if (dotIndex >= 0)
             {
                 Uri fullURI = null;
-                try {
-                    fullURI = new Uri((url.StartsWith("http://")||url.StartsWith("https://"))?url:"http://"+url,UriKind.Absolute);
+                try
+                {
+                    fullURI = new Uri((url.StartsWith("http://") || url.StartsWith("https://")) ? url : "http://" + url, UriKind.Absolute);
                 }
                 catch (Exception ex)
                 {
@@ -261,7 +261,7 @@ namespace KeePassFaviconDownloader
 
                 if (!success)
                 {
-                    success = getFavicon(new Uri((lastURI==null)?fullURI:lastURI,"/favicon.ico"), ref ms, ref message);
+                    success = getFavicon(new Uri((lastURI == null) ? fullURI : lastURI, "/favicon.ico"), ref ms, ref message);
                 }
 
                 if (!success)
@@ -294,7 +294,6 @@ namespace KeePassFaviconDownloader
                 pwe.Touch(true);
                 m_host.Database.UINeedsIconUpdate = true;
             }
-
         }
 
         private Uri getMetaRefreshLink(Uri uri, HtmlAgilityPack.HtmlDocument hdoc)
@@ -359,7 +358,7 @@ namespace KeePassFaviconDownloader
             HtmlWeb hw = new HtmlWeb();
             hw.UserAgent = "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0";
             HtmlAgilityPack.HtmlDocument hdoc = null;
-            Uri responseURI = null; 
+            Uri responseURI = null;
 
             try
             {
@@ -378,14 +377,11 @@ namespace KeePassFaviconDownloader
                     nextUri = getMetaRefreshLink(responseURI, hdoc);
                     counter++;
                 } while (nextUri != null && counter < 16); // Sixteen redirects would be more than enough.
-
-
             }
             catch (Exception)
             {
                 return responseURI;
             }
-
 
             if (hdoc == null)
                 return responseURI;
@@ -400,7 +396,7 @@ namespace KeePassFaviconDownloader
                     try
                     {
                         HtmlAttribute r = node.Attributes["rel"];
-                        string val = r.Value.ToLower().Replace("shortcut","").Trim();
+                        string val = r.Value.ToLower().Replace("shortcut", "").Trim();
                         if (val == "icon")
                         {
                             try
@@ -427,8 +423,7 @@ namespace KeePassFaviconDownloader
                 return responseURI;
             }
 
-            return (getFavicon(new Uri(responseURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):responseURI;
-
+            return (getFavicon(new Uri(responseURI, faviconLocation), ref ms, ref message)) ? new Uri("http://success") : responseURI;
         }
 
         /// <summary>
@@ -440,12 +435,21 @@ namespace KeePassFaviconDownloader
         /// <returns></returns>
         private bool getFavicon(Uri uri, ref MemoryStream ms, ref string message)
         {
+            return getFaviconWithSecurityProtocol(uri, ref ms, ref message, originalSecurityProtocol) ||
+                (originalSecurityProtocol != SecurityProtocolTypeExtensions.Tls12 && getFaviconWithSecurityProtocol(uri, ref ms, ref message, SecurityProtocolTypeExtensions.Tls12)) ||
+                (originalSecurityProtocol != SecurityProtocolTypeExtensions.Tls11 && getFaviconWithSecurityProtocol(uri, ref ms, ref message, SecurityProtocolTypeExtensions.Tls11));
+        }
+
+        private bool getFaviconWithSecurityProtocol(Uri uri, ref MemoryStream ms, ref string message, SecurityProtocolType securityProtocolType)
+        {
             Stream s = null;
             Image img = null;
             MemoryStream memStream = new MemoryStream();
 
             try
             {
+                ServicePointManager.SecurityProtocol = securityProtocolType;
+
                 WebRequest webreq = WebRequest.Create(uri);
                 ((HttpWebRequest)webreq).UserAgent = "Mozilla/5.0 (Windows 6.1; rv:27.0) Gecko/20100101 Firefox/27.0";
                 ((HttpWebRequest)webreq).CookieContainer = new System.Net.CookieContainer();
@@ -454,13 +458,13 @@ namespace KeePassFaviconDownloader
                 webreq.Timeout = 10000; // don't think it's expecting too much for a few KB to be delivered inside 10 seconds.
 
                 WebResponse response = webreq.GetResponse();
-                
-                if( response==null )
+
+                if (response == null)
                 {
                     message += "Could not download favicon(s). This may be a temporary problem so you may want to try again later or post the contents of this error message on the KeePass Favicon Download forums at http://sourceforge.net/projects/keepass-favicon/support. Technical information which may help diagnose the problem is listed below, you can copy it to your clipboard by just clicking on this message and pressing CTRL-C.\n - No response from server";
                     return false;
                 }
-                if( uri != response.ResponseUri )
+                if (uri != response.ResponseUri)
                 {
                     //Redirect ?
                     return getFavicon(response.ResponseUri, ref ms, ref message);
@@ -472,14 +476,14 @@ namespace KeePassFaviconDownloader
                 byte[] buffer = new byte[4097];
                 do
                 {
-                    count = s.Read(buffer, 0, buffer.Length);        
-                    memStream.Write(buffer, 0, count);    
+                    count = s.Read(buffer, 0, buffer.Length);
+                    memStream.Write(buffer, 0, count);
                     if (count == 0)
                         break;
-                }    
+                }
                 while (true);
                 memStream.Position = 0;
-                
+
                 // END change
 
                 try
@@ -491,7 +495,7 @@ namespace KeePassFaviconDownloader
                 catch (Exception)
                 {
                     // This shouldn't be useful unless someone has messed up their favicon format
-                    try { img = Image.FromStream(memStream); } 
+                    try { img = Image.FromStream(memStream); }
                     catch (Exception) { throw; }
                 }
 
@@ -504,6 +508,7 @@ namespace KeePassFaviconDownloader
                     s.Close();
                 return false;
             }
+            //No separate handling for System.NotSupportedException which can occur if we try to use a TLS version which is not available https://support.microsoft.com/en-gb/help/3154517/support-for-tls-system-default-versions-included-in-the-net-framework
             catch (Exception generalException)
             {
                 // don't show this everytime a website has an invalid favicon - it could get old fast.
@@ -537,6 +542,5 @@ namespace KeePassFaviconDownloader
                 return false;
             }
         }
-
-	}
+    }
 }
