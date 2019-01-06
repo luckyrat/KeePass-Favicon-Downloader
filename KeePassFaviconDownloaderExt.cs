@@ -508,6 +508,7 @@ namespace KeePassFaviconDownloader
                     s.Close();
                 return false;
             }
+            //No separate handling for System.NotSupportedException which can occur if we try to use a TLS version which is not available https://support.microsoft.com/en-gb/help/3154517/support-for-tls-system-default-versions-included-in-the-net-framework
             catch (Exception generalException)
             {
                 // don't show this everytime a website has an invalid favicon - it could get old fast.
