@@ -1,8 +1,8 @@
 Source: keepass2-plugin-favicondownloader
 Section: libs
 Priority: optional
-Maintainer: Marcel Schnirring <ms@marcel-schnirring.de>
-Build-Depends: debhelper (>=9), keepass2, make, mono-devel, nuget
+Maintainer: Dark Dragon <darkdragon-001@web.de>
+Build-Depends: debhelper (>=9), keepass2, nuget
 Standards-Version: 4.1.4
 Homepage: https://github.com/darkdragon-001/KeePass-Favicon-Downloader
 
