@@ -1,3 +1,11 @@
+keepass2-plugin-favicondownloader (1.9.3) unstable; urgency=medium
+
+  * Fixed unsupported stream operations bug
+  * Reduce timeout to 5 seconds
+  * Minor fixes
+
+ -- Dark Dragon <darkdragon-001@web.de>  Thu, 30 May 2019 13:33:58 +0200
+
 keepass2-plugin-favicondownloader (1.9.2) unstable; urgency=medium
 
   * Use Keepass API to download resources
