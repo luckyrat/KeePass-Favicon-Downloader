@@ -452,6 +452,7 @@ namespace KeePassFaviconDownloader
                 }
 
                 MemUtil.CopyStream(stream, memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
 
                 try
                 {
@@ -462,8 +463,10 @@ namespace KeePassFaviconDownloader
                 catch (Exception)
                 {
                     // This shouldn't be useful unless someone has messed up their favicon format
+                    memoryStream.Seek(0, SeekOrigin.Begin);
                     try
                     {
+                        // This expects the stream to contain ONLY one image and nothing else
                         img = Image.FromStream(memoryStream);
                     }
                     catch (Exception ex)
@@ -473,6 +476,7 @@ namespace KeePassFaviconDownloader
                 }
                 finally
                 {
+                    // TODO The MemoryStream has to remain open as long as Image.FromStream is in use!
                     if (memoryStream != null)
                         memoryStream.Close();
                     if (stream != null)
@@ -499,7 +503,14 @@ namespace KeePassFaviconDownloader
             try
             {
                 Bitmap imgNew = new Bitmap(16, 16);
-                imgNew.SetResolution(img.HorizontalResolution, img.VerticalResolution);
+                if (img.HorizontalResolution > 0 && img.VerticalResolution > 0)
+                {
+                    imgNew.SetResolution(img.HorizontalResolution, img.VerticalResolution);
+                }
+                else
+                {
+                    imgNew.SetResolution(72, 72);
+                }
                 using (Graphics g = Graphics.FromImage(imgNew))
                 {
                     // set the resize quality modes to high quality
