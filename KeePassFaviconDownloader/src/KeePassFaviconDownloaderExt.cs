@@ -347,12 +347,18 @@ namespace KeePassFaviconDownloader
             try
             {
                 // Open
-                stream = FaviconConnection.OpenRead(fullURI);
-                if (stream == null)
+                HttpWebResponse response = FaviconConnection.GetResponse(fullURI);
+                if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    message += "Could not download website: No or empty response.";
+                    message += "Could not download website: " + response.StatusDescription;
                     return null;
                 }
+                // Use actually used URI (respects redirects)
+                // - Respects HTTP redirects
+                // - Ignores HTML meta or Javascript redirects (v1.9.0 supports meta)
+                fullURI = response.ResponseUri;
+                // Get response stream
+                stream = response.GetResponseStream();
 
                 // Read
                 StreamReader streamReader = new StreamReader(stream);
@@ -362,16 +368,6 @@ namespace KeePassFaviconDownloader
                     message += "Could not download website: Empty response.";
                     return null;
                 }
-            }
-            catch (WebException webException)
-            {
-                // WebExceptionStatus: https://docs.microsoft.com/en-us/dotnet/api/system.net.webexceptionstatus?view=netframework-2.0
-                //   WebExceptionStatus status = webException.Status;
-                // for status == WebExceptionStatus.ProtocolError
-                //   ((HttpWebResponse)webException.Response).StatusDescription;
-                //   ((HttpWebResponse)webException.Response).StatusCode;
-                message += "Could not download website: " + webException.Message;
-                return null;
             }
             catch (Exception ex)
             {
