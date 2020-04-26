@@ -341,54 +341,14 @@ namespace KeePassFaviconDownloader
         /// <returns>URI after redirect or null on error.</returns>
         private Uri getFromFaviconExplicitLocation(Uri fullURI, ref MemoryStream ms, ref string message)
         {
-            // Download website
-            Stream stream = null;
-            string html = "";
-            try
-            {
-                // Open
-                HttpWebResponse response = FaviconConnection.GetResponse(fullURI);
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    message += "Could not download website: " + response.StatusDescription;
-                    return null;
-                }
-                // Use actually used URI (respects redirects)
-                // - Respects HTTP redirects
-                // - Ignores HTML meta or Javascript redirects (v1.9.0 supports meta)
-                fullURI = response.ResponseUri;
-                // Get response stream
-                stream = response.GetResponseStream();
-
-                // Read
-                StreamReader streamReader = new StreamReader(stream);
-                html = streamReader.ReadToEnd();
-                if (String.IsNullOrEmpty(html))
-                {
-                    message += "Could not download website: Empty response.";
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                message += "Could not download website: " + ex.Message;
-                return null;
-            }
-            finally
-            {
-                if (stream != null)
-                    stream.Close();
-            }
-
-            // Parse HTML
+            // Download and parse HTML
             HtmlAgilityPack.HtmlDocument hdoc = null;
             try
             {
-                hdoc = new HtmlAgilityPack.HtmlDocument();
-                hdoc.LoadHtml(html);
+                hdoc = FaviconConnection.GetHtmlDocumentFollowMeta(ref fullURI);
                 if (hdoc == null)
                 {
-                    message += "Could not read website.";
+                    message += "Could not read website " + fullURI;
                     return null;
                 }
 

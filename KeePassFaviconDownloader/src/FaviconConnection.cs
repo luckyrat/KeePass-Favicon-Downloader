@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
+using System.Text.RegularExpressions;
 
+using System.Net;
 using System.Net.Cache;
 using System.Net.Security;
-
 using System.Security.Cryptography.X509Certificates;
+
+using HtmlAgilityPack;
 
 using KeePass;
 using KeePassLib;
@@ -27,30 +29,39 @@ namespace KeePassFaviconDownloader
 
     public static class FaviconConnection
     {
-        internal static void ConfigureWebRequest(HttpWebRequest request)
+        // This method should be called for *every* request
+        // Here, all the request parameters are specified
+        public static bool ConfigureWebRequest(HttpWebRequest request)
         {
             try
             {
                 IWebProxy prx = GetWebProxy();
                 if (prx != null) request.Proxy = prx;
             }
-            catch (Exception) { Debug.Assert(false); }
+            catch (Exception) { Debug.Assert(false); return false; }
 
-            request.Timeout = 5000;  // milliseconds
+            request.CookieContainer = new CookieContainer();
+
+            request.Timeout = 10000;  // milliseconds
 
             request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+
+            return true;
         }
 
-        internal static void ConfigureWebClient(WebClient wc)
+        public static bool ConfigureWebClient(WebClient wc)
         {
             try
             {
                 IWebProxy prx = GetWebProxy();
                 if (prx != null) wc.Proxy = prx;
             }
-            catch (Exception) { Debug.Assert(false); }
+            catch (Exception) { Debug.Assert(false); return false; }
+
+            return true;
         }
 
+        // Same logic as "private static KeePassLib.Serialization.IOConnection.GetWebProxy()"
         public static IWebProxy GetWebProxy()
         {
             IWebProxy prx = null;
@@ -119,6 +130,7 @@ namespace KeePassFaviconDownloader
             return prx;
         }
 
+        // Same logic as "private static KeePassLib.Serialization.IOConnection.AcceptCertificate()"
         // Allow self-signed certificates, expired certificates, etc.
         private static bool AcceptCertificate(object sender,
             X509Certificate certificate, X509Chain chain,
@@ -127,6 +139,7 @@ namespace KeePassFaviconDownloader
             return true;
         }
 
+        // Same logic as "private static KeePassLib.Serialization.IOConnection.PrepareWebAccess()"
         public static void PrepareWebAccess()
         {
             try
@@ -163,6 +176,48 @@ namespace KeePassFaviconDownloader
             catch (Exception) { Debug.Assert(false); }
         }
 
+        public static Uri GetMetaRefreshLink(Uri uri, HtmlDocument hdoc)
+        {
+            HtmlNodeCollection metas = hdoc.DocumentNode.SelectNodes("/html/head/meta");
+            string redirect = null;
+
+            if (metas == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < metas.Count; i++)
+            {
+                HtmlNode node = metas[i];
+                try
+                {
+                    HtmlAttribute httpeq = node.Attributes["http-equiv"];
+                    HtmlAttribute content = node.Attributes["content"];
+                    if (httpeq.Value.ToLower().Equals("location") || httpeq.Value.ToLower().Equals("refresh"))
+                    {
+                        if (content.Value.ToLower().Contains("url"))
+                        {
+                            Match match = Regex.Match(content.Value.ToLower(), @".*?url[\s=]*(\S+)");
+                            if (match.Success)
+                            {
+                                redirect = match.Captures[0].ToString();
+                                redirect = match.Groups[1].ToString();
+                            }
+                        }
+
+                    }
+                }
+                catch (Exception) { /* Continue loop and try next one */ }
+            }
+
+            if (String.IsNullOrEmpty(redirect))
+            {
+                return null;
+            }
+
+            return new Uri(uri, redirect);
+        }
+
         public static HttpWebRequest CreateWebRequest(Uri uri)
         {
             PrepareWebAccess();
@@ -183,6 +238,16 @@ namespace KeePassFaviconDownloader
             return wc;
         }
 
+        public static HtmlWeb CreateHtmlWebClient()
+        {
+            PrepareWebAccess();
+
+            HtmlWeb hw = new HtmlWeb();
+
+            hw.PreRequest += ConfigureWebRequest;
+            return hw;
+        }
+
         public static HttpWebResponse GetResponse(Uri uri)
         {
             return (HttpWebResponse)CreateWebRequest(uri).GetResponse();
@@ -191,6 +256,35 @@ namespace KeePassFaviconDownloader
         public static Stream OpenRead(Uri uri)
         {
             return CreateWebClient().OpenRead(uri);
+        }
+
+        public static HtmlDocument GetHtmlDocument(Uri uri)
+        {
+            return CreateHtmlWebClient().Load(uri);
+        }
+
+        public static HtmlDocument GetHtmlDocumentFollowMeta(ref Uri uri)
+        {
+            HtmlWeb hw = CreateHtmlWebClient();
+            HtmlDocument hdoc = null;
+
+            try
+            {
+                uint counter = 0;
+                Uri nextUri = uri;
+                do
+                {
+                    // Load and follow HTTP redirects
+                    hdoc = hw.Load(uri);
+                    uri = hw.ResponseUri;
+
+                    // Follow HTML meta refresh
+                    nextUri = GetMetaRefreshLink(uri, hdoc);
+                } while (nextUri != null && counter++ < 8);  // limit to 8 meta redirects
+            }
+            catch (Exception) { Debug.Assert(false); }
+
+            return hdoc;
         }
     }
 }
