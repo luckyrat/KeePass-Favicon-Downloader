@@ -347,9 +347,7 @@ namespace KeePassFaviconDownloader
             try
             {
                 // Open
-                IOConnectionInfo ioc = IOConnectionInfo.FromPath(fullURI.AbsoluteUri);
-                ioc.Properties.SetLong(IocKnownProperties.Timeout, 5000); // milliseconds
-                stream = IOConnection.OpenRead(ioc);
+                stream = FaviconConnection.OpenRead(fullURI);
                 if (stream == null)
                 {
                     message += "Could not download website: No or empty response.";
@@ -441,10 +439,7 @@ namespace KeePassFaviconDownloader
                 Stream stream = null;
                 MemoryStream memoryStream = new MemoryStream();
 
-                IOConnectionInfo ioc = IOConnectionInfo.FromPath(uri.AbsoluteUri);
-                ioc.Properties.SetLong(IocKnownProperties.Timeout, 5000); // milliseconds
-                stream = IOConnection.OpenRead(ioc);
-
+                stream = FaviconConnection.OpenRead(uri);
                 if (stream == null)
                 {
                     message += "Could not download favicon from " + uri.AbsoluteUri + ":\nNo or empty response.";
