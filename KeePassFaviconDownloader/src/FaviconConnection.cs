@@ -254,6 +254,12 @@ namespace KeePassFaviconDownloader
 
         public static Stream OpenRead(Uri uri)
         {
+            if (StrUtil.IsDataUri(uri.AbsoluteUri))
+            {
+                byte[] pbData = StrUtil.DataUriToData(uri.AbsoluteUri);
+                if (pbData != null) return new MemoryStream(pbData, false);
+            }
+
             return CreateWebClient().OpenRead(uri);
         }
 
