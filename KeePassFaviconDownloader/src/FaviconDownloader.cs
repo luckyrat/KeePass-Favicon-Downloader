@@ -26,7 +26,9 @@ namespace KeePassFaviconDownloader
                 }
                 else
                 {
-                    url = "http://" + url;
+                    if (!url.StartsWith("//", StringComparison.CurrentCulture))
+                        url = "//" + url;
+                    url = "http:" + url;
                 }
             }
 
