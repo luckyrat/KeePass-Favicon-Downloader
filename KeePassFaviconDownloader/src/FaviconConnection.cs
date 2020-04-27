@@ -96,10 +96,9 @@ namespace KeePassFaviconDownloader
                     Debug.Assert(false);
                     break;
             }
+            if (prx == null) return null;
 
             // Authentication
-            if (prx == null) return prx;
-
             ProxyAuthType pat = proxyConfig.ProxyAuthType;
             if (pat == ProxyAuthType.Auto)
             {

@@ -66,6 +66,7 @@
     <Compile Include="src\KeePassFaviconDownloaderExt.cs" />
     <Compile Include="src\Properties\AssemblyInfo.cs" />
     <Compile Include="src\FaviconConnection.cs" />
+    <Compile Include="src\FaviconDownloader.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

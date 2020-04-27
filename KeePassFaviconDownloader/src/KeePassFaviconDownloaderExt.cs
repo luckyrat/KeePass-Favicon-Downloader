@@ -23,25 +23,14 @@
 
 using System;
 using System.IO;
-using System.Collections.Generic;
-using System.Text;
 using System.Diagnostics;
 using System.Windows.Forms;
-using System.Net;
-using System.Drawing;
 
 using KeePass.Plugins;
 using KeePass.Forms;
-using KeePass.Resources;
 
 using KeePassLib;
-using KeePassLib.Security;
 using KeePassLib.Interfaces;
-using KeePassLib.Serialization;
-using KeePassLib.Utility;
-
-using HtmlAgilityPack;
-using System.Text.RegularExpressions;
 
 namespace KeePassFaviconDownloader
 {
@@ -70,7 +59,7 @@ namespace KeePassFaviconDownloader
         public override bool Initialize(IPluginHost host)
         {
             Debug.Assert(host != null);
-            if(host == null) return false;
+            if (host == null) return false;
             m_host = host;
 
             // Add a seperator and menu item to the 'Tools' menu
@@ -131,7 +120,7 @@ namespace KeePassFaviconDownloader
         /// <param name="e"></param>
         private void OnMenuDownloadFavicons(object sender, EventArgs e)
         {
-            if(!m_host.Database.IsOpen)
+            if (!m_host.Database.IsOpen)
             {
                 MessageBox.Show("Please open a database first.", "Favicon downloader");
                 return;
@@ -139,7 +128,7 @@ namespace KeePassFaviconDownloader
 
             KeePassLib.Collections.PwObjectList<PwEntry> output;
             output = m_host.Database.RootGroup.GetEntries(true);
-            downloadSomeFavicons(output);
+            DownloadSomeFavicons(output);
         }
 
         /// <summary>
@@ -151,7 +140,7 @@ namespace KeePassFaviconDownloader
         {
             PwGroup pg = m_host.MainWindow.GetSelectedGroup();
             Debug.Assert(pg != null); if (pg == null) return;
-            downloadSomeFavicons(pg.Entries);
+            DownloadSomeFavicons(pg.Entries);
         }
 
         /// <summary>
@@ -164,14 +153,14 @@ namespace KeePassFaviconDownloader
 
             PwEntry[] pwes = m_host.MainWindow.GetSelectedEntries();
             Debug.Assert(pwes != null); if (pwes == null || pwes.Length == 0) return;
-            downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry>.FromArray(pwes));
+            DownloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry>.FromArray(pwes));
         }
 
         /// <summary>
         /// Downloads some favicons.
         /// </summary>
         /// <param name="entries">The entries.</param>
-        private void downloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry> entries)
+        private void DownloadSomeFavicons(KeePassLib.Collections.PwObjectList<PwEntry> entries)
         {
             StatusProgressForm progressForm = new StatusProgressForm();
 
@@ -185,16 +174,18 @@ namespace KeePassFaviconDownloader
             string errorMessage = "";
             int errorCount = 0;
 
+            // TODO use await foreach .WithCancellation() (needs .NET 4.8 though)?
+            // https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8
             foreach (PwEntry pwe in entries)
             {
                 string message = "";
 
-                progressForm.SetText("Title: " + pwe.Strings.ReadSafe("Title") + "; User Name: " + pwe.Strings.ReadSafe("UserName"),LogStatusType.Info);
+                progressForm.SetText("Title: " + pwe.Strings.ReadSafe("Title") + "; User Name: " + pwe.Strings.ReadSafe("UserName"), LogStatusType.Info);
 
-                downloadOneFavicon(pwe, ref message);
+                DownloadOneFavicon(pwe, ref message);
                 if (message != "")
                 {
-                    errorMessage = "For an entry with URL '"+pwe.Strings.ReadSafe("URL")+"':\n" + message;
+                    errorMessage = "For an entry with URL '" + pwe.Strings.ReadSafe("URL") + "':\n" + message;
                     errorCount++;
                 }
 
@@ -229,10 +220,8 @@ namespace KeePassFaviconDownloader
         /// Downloads one favicon and attaches it to the entry
         /// </summary>
         /// <param name="pwe">The entry for which we want to download the favicon</param>
-        private void downloadOneFavicon(PwEntry pwe, ref string message)
+        private void DownloadOneFavicon(PwEntry pwe, ref string message)
         {
-            // TODO: create async jobs instead?
-
             // Read URL
             string url = pwe.Strings.ReadSafe("URL");
 
@@ -244,60 +233,10 @@ namespace KeePassFaviconDownloader
             if (string.IsNullOrEmpty(url))
                 return;
 
-            // If we have a URL with specific protocol that is not http or https, quit
-            if (!url.StartsWith("http://", StringComparison.CurrentCulture) && !url.StartsWith("https://", StringComparison.CurrentCulture))
-            {
-                if (url.Contains("://")) { // NOTE URI standard only requires ":", but it should be differentiated to port separator "domain:port"
-                    message += "Invalid URL (unsupported protocol): " + url;
-                    return;
-                } else {
-                    url = "http://" + url;
-                }
-            }
+            // Parse website and load favicon
+            MemoryStream ms = FaviconDownloader.GetFuzzyForWebsite(url, ref message);
 
-            // Try to create an URI
-            Uri fullURI = null;
-            if (!Uri.TryCreate(url, UriKind.Absolute, out fullURI))
-            {
-                message += "Invalid URI: " + url;
-                return;
-            }
-
-            MemoryStream ms = null;
-            Uri lastURI = getFromFaviconExplicitLocation(fullURI, ref ms, ref message) ?? fullURI;
-            bool success = lastURI.OriginalString.Equals("http://success");
-            // TODO no reason to continue for WebException.Status: NameResolutionFailure, TrustFailure (SSL), ...
-
-            // Swap scheme
-            if (!success)
-            {
-                message += "\n";
-
-                UriBuilder uriBuilder = new UriBuilder(lastURI);
-                if (uriBuilder.Scheme.Equals("http"))
-                {
-                    uriBuilder.Scheme = "https";
-                    uriBuilder.Port = 443;
-                }
-                else
-                {
-                    uriBuilder.Scheme = "http";
-                    uriBuilder.Port = 80;
-                }
-                lastURI = getFromFaviconExplicitLocation(uriBuilder.Uri, ref ms, ref message) ?? fullURI;
-                success = lastURI.OriginalString.Equals("http://success");
-            }
-
-            // Guess location
-            if (!success)
-            {
-                message += "\n";
-
-                UriBuilder uriBuilder = new UriBuilder(fullURI.Scheme, fullURI.Host, fullURI.Port, "favicon.ico");
-                success = getFavicon(uriBuilder.Uri, ref ms, ref message);
-            }
-
-            if (!success)
+            if (ms == null)
             {
                 return;
             }
@@ -330,155 +269,6 @@ namespace KeePassFaviconDownloader
             pwe.CustomIconUuid = pwci.Uuid;
             pwe.Touch(true);
             m_host.Database.UINeedsIconUpdate = true;
-        }
-
-        /// <summary>
-        /// Gets a memory stream representing an image from an explicit favicon location.
-        /// </summary>
-        /// <param name="fullURI">The URI.</param>
-        /// <param name="ms">The memory stream (output).</param>
-        /// <param name="message">Any error message is sent back through this string.</param>
-        /// <returns>URI after redirect or null on error.</returns>
-        private Uri getFromFaviconExplicitLocation(Uri fullURI, ref MemoryStream ms, ref string message)
-        {
-            // Download and parse HTML
-            HtmlAgilityPack.HtmlDocument hdoc = null;
-            try
-            {
-                hdoc = FaviconConnection.GetHtmlDocumentFollowMeta(ref fullURI);
-                if (hdoc == null)
-                {
-                    message += "Could not read website " + fullURI;
-                    return null;
-                }
-
-                string faviconLocation = "";
-                HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
-                foreach (HtmlNode node in links)
-                {
-                    string val = node.Attributes["rel"]?.Value.ToLower().Replace("shortcut","").Trim();
-                    if (val == "icon")
-                    {
-                        faviconLocation = node.Attributes["href"]?.Value;
-                        // Don't break the loop, because there could be many <link rel="icon"> nodes
-                        // We should read the last one, like web browsers do
-                    }
-                }
-                if (String.IsNullOrEmpty(faviconLocation))
-                {
-                    message += "Could not find favicon link within website.";
-                    return null;
-                }
-
-                return (getFavicon(new Uri(fullURI, faviconLocation), ref ms, ref message))?new Uri("http://success"):null;
-            }
-            catch (Exception ex)
-            {
-                message += "Could not parse website: " + ex.Message;
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Gets a memory stream representing an image from a standard favicon location.
-        /// </summary>
-        /// <param name="uri">The URI.</param>
-        /// <param name="ms">The memory stream (output).</param>
-        /// <param name="message">Any error message is sent back through this string.</param>
-        /// <returns>True when successful.</returns>
-        private bool getFavicon(Uri uri, ref MemoryStream ms, ref string message)
-        {
-            Image img = null;
-
-            try
-            {
-                Stream stream = null;
-                MemoryStream memoryStream = new MemoryStream();
-
-                stream = FaviconConnection.OpenRead(uri);
-                if (stream == null)
-                {
-                    message += "Could not download favicon from " + uri.AbsoluteUri + ":\nNo or empty response.";
-                    return false;
-                }
-
-                MemUtil.CopyStream(stream, memoryStream);
-                memoryStream.Seek(0, SeekOrigin.Begin);
-
-                try
-                {
-                    Icon icon = new Icon(memoryStream);
-                    icon = new Icon(icon, 16, 16);
-                    img = icon.ToBitmap();
-                }
-                catch (Exception)
-                {
-                    // This shouldn't be useful unless someone has messed up their favicon format
-                    memoryStream.Seek(0, SeekOrigin.Begin);
-                    try
-                    {
-                        // This expects the stream to contain ONLY one image and nothing else
-                        img = Image.FromStream(memoryStream);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new Exception("Invalid image format: " + ex.Message);
-                    }
-                }
-                finally
-                {
-                    // TODO The MemoryStream has to remain open as long as Image.FromStream is in use!
-                    if (memoryStream != null)
-                        memoryStream.Close();
-                    if (stream != null)
-                        stream.Close();
-                }
-
-            }
-            catch (WebException webException)
-            {
-                // WebExceptionStatus: https://docs.microsoft.com/en-us/dotnet/api/system.net.webexceptionstatus?view=netframework-2.0
-                //   WebExceptionStatus status = webException.Status;
-                // for status == WebExceptionStatus.ProtocolError
-                //   ((HttpWebResponse)webException.Response).StatusDescription;
-                //   ((HttpWebResponse)webException.Response).StatusCode;
-                message += "Could not download favicon from " + uri.AbsoluteUri + ":\n" + webException.Message;
-                return false;
-            }
-            catch (Exception ex)
-            {
-                message += "Could not process downloaded favicon from " + uri.AbsoluteUri + ":\n" + ex.Message + ".";
-                return false;
-            }
-
-            try
-            {
-                Bitmap imgNew = new Bitmap(16, 16);
-                if (img.HorizontalResolution > 0 && img.VerticalResolution > 0)
-                {
-                    imgNew.SetResolution(img.HorizontalResolution, img.VerticalResolution);
-                }
-                else
-                {
-                    imgNew.SetResolution(72, 72);
-                }
-                using (Graphics g = Graphics.FromImage(imgNew))
-                {
-                    // set the resize quality modes to high quality
-                    g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                    g.DrawImage(img, 0, 0, imgNew.Width, imgNew.Height);
-                }
-                ms = new MemoryStream();
-                imgNew.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                message += "Could not resize downloaded favicon from " + uri.AbsoluteUri + ":\n" + ex.Message + ".";
-                return false;
-            }
         }
     }
 }
