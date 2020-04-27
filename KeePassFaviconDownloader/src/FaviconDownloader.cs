@@ -14,19 +14,15 @@ namespace KeePassFaviconDownloader
         /// Gets a memory stream representing an image from a fuzzy favicon location.
         /// </summary>
         /// <param name="url">The URL to fuzzy download favicons for.</param>
-        /// <param name="message">Any error message is sent back through this string.</param>
         /// <returns>Favicon memory stream.</returns>
-        public static MemoryStream GetFuzzyForWebsite(string url, ref string message)
+        public static MemoryStream GetFuzzyForWebsite(string url)
         {
-            MemoryStream ms = null;
-
             // If we have a URL with specific protocol that is not http or https, quit
             if (!url.StartsWith("http://", StringComparison.CurrentCulture) && !url.StartsWith("https://", StringComparison.CurrentCulture))
             {
                 if (url.Contains("://"))
                 { // NOTE URI standard only requires ":", but it should be differentiated to port separator "domain:port"
-                    message += "Invalid URL (unsupported protocol): " + url;
-                    return null;
+                    throw new FormatException("Invalid URI (unsupported protocol): " + url);
                 }
                 else
                 {
@@ -35,29 +31,31 @@ namespace KeePassFaviconDownloader
             }
 
             // Try to create an URI
+            string errorMessage = "";  // TODO generate automatically in multi-inner-exception
             Uri fullURI = null;
             if (!Uri.TryCreate(url, UriKind.Absolute, out fullURI))
             {
-                message += "Invalid URI: " + url;
-                return null;
+                throw new FormatException("Invalid URI: " + url);
             }
 
             // Parse website and try to load favicon
             Uri lastUri = fullURI;  // save location after redirects
-            ms = GetForWebsite(ref lastUri, ref message);
+            try
+            {
+                return GetForWebsite(ref lastUri);
+            }
+            catch (Exception ex) { errorMessage += "\n" + ex.Message; }
 
             // Guess location based on (redirected) hostname
-            if (ms == null)
+            try
             {
-                message += "\n";
-                ms = GetFavicon(new Uri(lastUri, "/favicon.ico"), ref message);
+                return GetFavicon(new Uri(lastUri, "/favicon.ico"));
             }
+            catch (Exception ex) { errorMessage += "\n" + ex.Message; }
 
             // Swap scheme of original URI
-            if (ms == null)
+            try
             {
-                message += "\n";
-
                 UriBuilder uriBuilder = new UriBuilder(fullURI);
                 if (uriBuilder.Scheme.Equals("http"))
                 {
@@ -70,10 +68,12 @@ namespace KeePassFaviconDownloader
                     uriBuilder.Port = 80;
                 }
                 lastUri = uriBuilder.Uri;
-                ms = GetForWebsite(ref lastUri, ref message);
+                return GetForWebsite(ref lastUri);
             }
+            catch (Exception ex) { errorMessage += "\n" + ex.Message; }
 
-            return ms;
+            // None of our approaches returned something useful
+            throw new Exception("Could not process favicon for " + url + ":" + errorMessage);
 
         }
 
@@ -81,22 +81,22 @@ namespace KeePassFaviconDownloader
         /// Gets a memory stream representing an image from an explicit favicon location.
         /// </summary>
         /// <param name="fullURI">The URI (will be updated on redirects).</param>
-        /// <param name="message">Any error message is sent back through this string.</param>
         /// <returns>The memory stream (output).</returns>
-        public static MemoryStream GetForWebsite(ref Uri fullURI, ref string message)
+        public static MemoryStream GetForWebsite(ref Uri fullURI)
         {
             // Download and parse HTML
-            HtmlAgilityPack.HtmlDocument hdoc = null;
+            string faviconLocation = "";
             try
             {
+                HtmlAgilityPack.HtmlDocument hdoc = null;
                 hdoc = FaviconConnection.GetHtmlDocumentFollowMeta(ref fullURI);
                 if (hdoc == null)
                 {
-                    message += "Could not read website " + fullURI;
-                    return null;
+                    throw new Exception("Could not read website " + fullURI.AbsoluteUri + ":\nNo or empty response.");
                 }
 
-                string faviconLocation = "";
+                // TODO prefer high-resolution apple-touch-icon
+                // https://github.com/luckyrat/KeePass-Favicon-Downloader/issues/13
                 HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
                 foreach (HtmlNode node in links)
                 {
@@ -110,107 +110,110 @@ namespace KeePassFaviconDownloader
                 }
                 if (String.IsNullOrEmpty(faviconLocation))
                 {
-                    message += "Could not find favicon link within website.";
-                    return null;
+                    throw new Exception("Could not find valid favicon link within website.");
                 }
-
-                return GetFavicon(new Uri(fullURI, faviconLocation), ref message);
             }
             catch (Exception ex)
             {
-                message += "Could not parse website: " + ex.Message;
-                return null;
+                throw new Exception("Could not parse website.", ex);
             }
+
+            return GetFavicon(new Uri(fullURI, faviconLocation));
         }
 
         /// <summary>
         /// Gets a memory stream representing an image from a standard favicon location.
         /// </summary>
         /// <param name="uri">The URI.</param>
-        /// <param name="message">Any error message is sent back through this string.</param>
         /// <returns>The memory stream (output).</returns>
-        public static MemoryStream GetFavicon(Uri uri, ref string message)
+        public static MemoryStream GetFavicon(Uri uri)
         {
             Image img = null;
-
+            MemoryStream memoryStream = new MemoryStream();
             try
             {
-                Stream stream = null;
-                MemoryStream memoryStream = new MemoryStream();
-
-                stream = FaviconConnection.OpenRead(uri);
-                if (stream == null)
-                {
-                    message += "Could not download favicon from " + uri.AbsoluteUri + ":\nNo or empty response.";
-                    return null;
-                }
-
-                MemUtil.CopyStream(stream, memoryStream);
-                memoryStream.Seek(0, SeekOrigin.Begin);
-
+                // Download and create favicon image object
                 try
                 {
-                    Icon icon = new Icon(memoryStream);
-                    icon = new Icon(icon, 16, 16);
-                    img = icon.ToBitmap();
-                }
-                catch (Exception)
-                {
-                    // This shouldn't be useful unless someone has messed up their favicon format
+                    Stream stream = FaviconConnection.OpenRead(uri);
+                    if (stream == null)
+                    {
+                        throw new Exception("Could not download favicon from " + uri.AbsoluteUri + ":\nNo or empty response.");
+                    }
+
+                    MemUtil.CopyStream(stream, memoryStream);
                     memoryStream.Seek(0, SeekOrigin.Begin);
+
                     try
                     {
-                        // This expects the stream to contain ONLY one image and nothing else
-                        img = Image.FromStream(memoryStream);
+                        // TODO compressed PNG inside ICO file are not supported in mono
+                        // https://github.com/picoe/Eto/issues/603
+                        Icon icon = new Icon(memoryStream);
+                        icon = new Icon(icon, 16, 16);
+                        img = icon.ToBitmap();
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        throw new Exception("Invalid image format: " + ex.Message);
+                        // This shouldn't be useful unless someone has messed up their favicon format
+                        memoryStream.Seek(0, SeekOrigin.Begin);
+                        try
+                        {
+                            // This expects the stream to contain ONLY one image and nothing else
+                            img = Image.FromStream(memoryStream);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new Exception("Invalid image format for " + uri.AbsoluteUri + ".", ex);
+                        }
                     }
+                    finally
+                    {
+                        if (stream != null)
+                            stream.Close();
+                    }
+
                 }
-                finally
+                catch (Exception ex)
                 {
-                    // TODO The MemoryStream has to remain open as long as Image.FromStream is in use!
-                    if (memoryStream != null)
-                        memoryStream.Close();
-                    if (stream != null)
-                        stream.Close();
+                    throw new Exception("Could not download and process favicon from " + uri.AbsoluteUri + ".", ex);
                 }
 
-            }
-            catch (Exception ex)
-            {
-                message += "Could not process downloaded favicon from " + uri.AbsoluteUri + ":\n" + ex.Message + ".";
-                return null;
-            }
-
-            try
-            {
-                Bitmap imgNew = new Bitmap(16, 16);
-                if (img.HorizontalResolution > 0 && img.VerticalResolution > 0)
+                // Resize downloaded favicon
+                // TODO support larger icons in newer KeePass versions
+                // https://github.com/luckyrat/KeePass-Favicon-Downloader/issues/13
+                try
                 {
-                    imgNew.SetResolution(img.HorizontalResolution, img.VerticalResolution);
+                    Bitmap imgNew = new Bitmap(16, 16);
+                    if (img.HorizontalResolution > 0 && img.VerticalResolution > 0)
+                    {
+                        imgNew.SetResolution(img.HorizontalResolution, img.VerticalResolution);
+                    }
+                    else
+                    {
+                        imgNew.SetResolution(72, 72);
+                    }
+                    using (Graphics g = Graphics.FromImage(imgNew))
+                    {
+                        // set the resize quality modes to high quality
+                        g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                        g.DrawImage(img, 0, 0, imgNew.Width, imgNew.Height);
+                    }
+                    MemoryStream ms = new MemoryStream();
+                    imgNew.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    return ms;
                 }
-                else
+                catch (Exception ex)
                 {
-                    imgNew.SetResolution(72, 72);
+                    throw new Exception("Could not resize downloaded favicon from " + uri.AbsoluteUri + ".", ex);
                 }
-                using (Graphics g = Graphics.FromImage(imgNew))
-                {
-                    // set the resize quality modes to high quality
-                    g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                    g.DrawImage(img, 0, 0, imgNew.Width, imgNew.Height);
-                }
-                MemoryStream ms = new MemoryStream();
-                imgNew.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                return ms;
             }
-            catch (Exception ex)
+            finally
             {
-                message += "Could not resize downloaded favicon from " + uri.AbsoluteUri + ":\n" + ex.Message + ".";
-                return null;
+                // MemoryStream has to remain open as long as Image.FromStream is in use!
+                if (memoryStream != null)
+                    memoryStream.Close();
             }
         }
     }

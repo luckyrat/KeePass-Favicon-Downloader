@@ -70,7 +70,7 @@ namespace KeePassFaviconDownloader
             switch (proxyConfig.ProxyType)
             {
                 case ProxyServerType.None:
-                    prx = null; // Use null proxy
+                    prx = null;
                     break;
                 case ProxyServerType.Manual:
                     if (proxyConfig.ProxyAddress.Length != 0)
@@ -267,21 +267,17 @@ namespace KeePassFaviconDownloader
             HtmlWeb hw = CreateHtmlWebClient();
             HtmlDocument hdoc = null;
 
-            try
+            uint counter = 0;
+            Uri nextUri = uri;
+            do
             {
-                uint counter = 0;
-                Uri nextUri = uri;
-                do
-                {
-                    // Load and follow HTTP redirects
-                    hdoc = hw.Load(uri);
-                    uri = hw.ResponseUri;
+                // Load and follow HTTP redirects
+                hdoc = hw.Load(uri);
+                uri = hw.ResponseUri;
 
-                    // Follow HTML meta refresh
-                    nextUri = GetMetaRefreshLink(uri, hdoc);
-                } while (nextUri != null && counter++ < 8);  // limit to 8 meta redirects
-            }
-            catch (Exception) { Debug.Assert(false); }
+                // Follow HTML meta refresh
+                nextUri = GetMetaRefreshLink(uri, hdoc);
+            } while (nextUri != null && counter++ < 8);  // limit to 8 meta redirects
 
             return hdoc;
         }

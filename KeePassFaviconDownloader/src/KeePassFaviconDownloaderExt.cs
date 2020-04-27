@@ -178,14 +178,15 @@ namespace KeePassFaviconDownloader
             // https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8
             foreach (PwEntry pwe in entries)
             {
-                string message = "";
-
                 progressForm.SetText("Title: " + pwe.Strings.ReadSafe("Title") + "; User Name: " + pwe.Strings.ReadSafe("UserName"), LogStatusType.Info);
 
-                DownloadOneFavicon(pwe, ref message);
-                if (message != "")
+                try
                 {
-                    errorMessage = "For an entry with URL '" + pwe.Strings.ReadSafe("URL") + "':\n" + message;
+                    DownloadOneFavicon(pwe);
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = ex.Message;
                     errorCount++;
                 }
 
@@ -220,7 +221,7 @@ namespace KeePassFaviconDownloader
         /// Downloads one favicon and attaches it to the entry
         /// </summary>
         /// <param name="pwe">The entry for which we want to download the favicon</param>
-        private void DownloadOneFavicon(PwEntry pwe, ref string message)
+        private void DownloadOneFavicon(PwEntry pwe)
         {
             // Read URL
             string url = pwe.Strings.ReadSafe("URL");
@@ -234,15 +235,8 @@ namespace KeePassFaviconDownloader
                 return;
 
             // Parse website and load favicon
-            MemoryStream ms = FaviconDownloader.GetFuzzyForWebsite(url, ref message);
-
-            if (ms == null)
-            {
-                return;
-            }
-
-            // If we found an icon then we don't care whether one particular download method failed.
-            message = "";
+            MemoryStream ms = FaviconDownloader.GetFuzzyForWebsite(url);
+            Debug.Assert(ms != null);
 
             byte[] msByteArray = ms.ToArray();
 
