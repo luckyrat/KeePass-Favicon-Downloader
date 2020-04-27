@@ -177,7 +177,7 @@ namespace KeePassFaviconDownloader
 
         public static Uri GetMetaRefreshLink(Uri uri, HtmlDocument hdoc)
         {
-            HtmlNodeCollection metas = hdoc.DocumentNode.SelectNodes("/html/head/meta");
+            HtmlNodeCollection metas = hdoc.DocumentNode.SelectNodes("//meta");
             string redirect = null;
 
             if (metas == null)
@@ -185,16 +185,15 @@ namespace KeePassFaviconDownloader
                 return null;
             }
 
-            for (int i = 0; i < metas.Count; i++)
+            foreach (HtmlNode node in metas)
             {
-                HtmlNode node = metas[i];
                 try
                 {
                     HtmlAttribute httpeq = node.Attributes["http-equiv"];
-                    HtmlAttribute content = node.Attributes["content"];
-                    if (httpeq.Value.ToLower().Equals("location") || httpeq.Value.ToLower().Equals("refresh"))
+                    if (httpeq != null && ( httpeq.Value.ToLower().Equals("location") || httpeq.Value.ToLower().Equals("refresh") ) )
                     {
-                        if (content.Value.ToLower().Contains("url"))
+                        HtmlAttribute content = node.Attributes["content"];
+                        if (content != null && content.Value.ToLower().Contains("url"))
                         {
                             Match match = Regex.Match(content.Value.ToLower(), @".*?url[\s=]*(\S+)");
                             if (match.Success)
@@ -203,7 +202,6 @@ namespace KeePassFaviconDownloader
                                 redirect = match.Groups[1].ToString();
                             }
                         }
-
                     }
                 }
                 catch (Exception) { /* Continue loop and try next one */ }
@@ -278,7 +276,7 @@ namespace KeePassFaviconDownloader
             do
             {
                 // Load and follow HTTP redirects
-                hdoc = hw.Load(uri);
+                hdoc = hw.Load(nextUri);
                 uri = hw.ResponseUri;
 
                 // Follow HTML meta refresh

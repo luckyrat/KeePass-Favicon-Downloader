@@ -94,12 +94,16 @@ namespace KeePassFaviconDownloader
                 hdoc = FaviconConnection.GetHtmlDocumentFollowMeta(ref fullURI);
                 if (hdoc == null)
                 {
-                    throw new Exception("Could not read website " + fullURI.AbsoluteUri + ":\nNo or empty response.");
+                    throw new Exception("Could not read website " + fullURI + ":\nNo or empty response.");
                 }
 
                 // TODO prefer high-resolution apple-touch-icon
                 // https://github.com/luckyrat/KeePass-Favicon-Downloader/issues/13
-                HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("/html/head/link");
+                HtmlNodeCollection links = hdoc.DocumentNode.SelectNodes("//link");
+                if (links == null)
+                {
+                    throw new NodeNotFoundException("No favicon specified for website " + fullURI + ":\nNo or empty response.");
+                }
                 foreach (HtmlNode node in links)
                 {
                     string val = node.Attributes["rel"]?.Value.ToLower().Replace("shortcut", "").Trim();
@@ -112,12 +116,12 @@ namespace KeePassFaviconDownloader
                 }
                 if (String.IsNullOrEmpty(faviconLocation))
                 {
-                    throw new Exception("Could not find valid favicon link within website.");
+                    throw new Exception("Could not find valid favicon link within website " + fullURI);
                 }
             }
             catch (Exception ex)
             {
-                throw new Exception("Could not parse website.", ex);
+                throw new Exception("Could not parse website: " + ex.Message, ex);
             }
 
             return GetFavicon(new Uri(fullURI, faviconLocation));
@@ -140,7 +144,7 @@ namespace KeePassFaviconDownloader
                     Stream stream = FaviconConnection.OpenRead(uri);
                     if (stream == null)
                     {
-                        throw new Exception("Could not download favicon from " + uri.AbsoluteUri + ":\nNo or empty response.");
+                        throw new Exception("Could not download favicon from " + uri + ":\nNo or empty response.");
                     }
 
                     MemUtil.CopyStream(stream, memoryStream);
@@ -165,7 +169,7 @@ namespace KeePassFaviconDownloader
                         }
                         catch (Exception ex)
                         {
-                            throw new Exception("Invalid image format for " + uri.AbsoluteUri + ".", ex);
+                            throw new Exception("Invalid image format for " + uri + ".", ex);
                         }
                     }
                     finally
@@ -177,7 +181,7 @@ namespace KeePassFaviconDownloader
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("Could not download and process favicon from " + uri.AbsoluteUri + ".", ex);
+                    throw new Exception("Could not download and process favicon from " + uri + ".", ex);
                 }
 
                 // Resize downloaded favicon
@@ -208,7 +212,7 @@ namespace KeePassFaviconDownloader
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("Could not resize downloaded favicon from " + uri.AbsoluteUri + ".", ex);
+                    throw new Exception("Could not resize downloaded favicon from " + uri + ".", ex);
                 }
             }
             finally
