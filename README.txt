@@ -16,6 +16,19 @@ Put the .plgx file into a folder called "plugins" inside your
 KeePass Password Safe installation folder 
 (often C:\Program Files\KeePass Password Safe 2\)
 
+#### Chocolatey 📦 
+Or you can [use Chocolatey to install](https://community.chocolatey.org/packages/keepass-plugin-favicon#install) it in a more automated manner:
+
+```
+choco install keepass-plugin-favicon
+```
+
+To [upgrade KeePass Plugin Favicon Downloader](https://community.chocolatey.org/packages/keepass-plugin-favicon#upgrade) to the [latest release version](https://community.chocolatey.org/packages/keepass-plugin-favicon#versionhistory) for enjoying the newest features, run the following command from the command line or from PowerShell:
+
+```
+choco upgrade keepass-plugin-favicon
+```
+
 Known issues
 ------------
 
